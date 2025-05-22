@@ -1,26 +1,56 @@
-# Thư mục node_modules chứa các package được cài đặt, không cần đưa vào Git
-node_modules/
+# compiled output
+/dist
+/node_modules
+/build
 
-# Các tệp log
+# Logs
+logs
 *.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
-# Các tệp cấu hình IDE như VSCode, JetBrains, v.v.
-.vscode/
-.idea/
-
-# Các tệp môi trường như .env chứa thông tin nhạy cảm
-.env
-
-# Các tệp tạm thời của hệ thống, ví dụ như macOS
+# OS
 .DS_Store
 
-# Các tệp build của dự án (nếu có)
-dist/
-build/
+# Tests
+/coverage
+/.nyc_output
 
-# Các tệp tạm thời của hệ điều hành
-Thumbs.db
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
 
-# Các tệp phụ trợ của editor
-*.swp
-*.swo
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# temp directory
+.temp
+.tmp
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
