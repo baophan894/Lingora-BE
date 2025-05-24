@@ -13,6 +13,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { ResetTokenService } from '@modules/reset-token/reset-token.service';
 import { ResetTokenModule } from '@modules/reset-token/reset-token.module';
 import { UserModule } from '@modules/users/users.module';
+import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
 	imports: [
@@ -39,6 +40,7 @@ import { UserModule } from '@modules/users/users.module';
 		JwtAccessTokenStrategy,
 		JwtRefreshTokenStrategy,
 		UserService,
+		GoogleStrategy,
 		ResetTokenService,
 	],
 })

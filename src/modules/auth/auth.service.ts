@@ -19,8 +19,9 @@ import {
 import { ERRORS_DICTIONARY } from 'src/constraints/error-dictionary.constraint';
 import { SignInDto } from './dto/sign-in.dto';
 import { UserService } from '@modules/users/users.service';
-import { SignUpDto } from './dto/sign-up.dto';
+import { SignUpDto, SignUpGoogleDto } from './dto/sign-up.dto';
 import { UserRepository } from '@repositories/user.repository';
+import { SignInTokenDto } from './dto/sign-in-token.dto';
 @Injectable()
 export class AuthService {
 	private SALT_ROUND = 11;
@@ -61,6 +62,91 @@ export class AuthService {
 		}
 	}
 
+	async authInWithGoogle(sign_up_dto: SignUpGoogleDto) {
+		try {
+			const user = await this.userRepository.findOneByCondition({ email: sign_up_dto.email });
+
+			if (!user) {
+				throw new Error('Người dùng chưa được đăng ký');
+			}
+
+			if (!user.isActive) {
+				throw new HttpException(
+					{ message: 'Tài khoản đã bị khóa', error: 'Unauthorized' },
+					HttpStatus.UNAUTHORIZED,
+				);
+			}
+
+			return await this.signInUser(user._id.toString());
+		} catch (error) {
+			console.error('Auth error:', error);
+			throw new BadRequestException({
+				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				error: error.message,
+				message: 'Có lỗi xảy ra, vui lòng thử lại sau',
+			});
+		}
+	}
+
+
+	async authenticateWithGoogle(sign_in_token: SignInTokenDto) {
+		try {
+			const { token, avatar } = sign_in_token;
+			const decodedToken = this.jwt_service.decode(token) as { email: string };
+
+			if (!decodedToken?.email) {
+				throw new HttpException(
+					{ message: 'Token không hợp lệ', error: 'Bad Request' },
+					HttpStatus.BAD_REQUEST,
+				);
+			}
+
+			const email = decodedToken.email;
+
+			const user = await this.userRepository.findOneByCondition({ email });
+
+			if (!user) {
+				throw new HttpException(
+					{ message: 'Không tìm thấy người dùng', error: 'Unauthorized' },
+					HttpStatus.UNAUTHORIZED,
+				);
+			}
+
+			if (!user.isActive) {
+				throw new HttpException(
+					{ message: 'Tài khoản của bạn đã bị khóa', error: 'Unauthorized' },
+					HttpStatus.UNAUTHORIZED,
+				);
+			}
+
+			if (avatar && user.avatarUrl !== avatar) {
+				await this.user_service.update(user.id, { avatarUrl: avatar });
+			}
+
+			const accessToken = this.generateAccessToken({
+				userId: user.id,
+				role: user.role,
+			});
+
+			const refreshToken = this.generateRefreshToken({
+				userId: user.id,
+				role: user.role,
+			});
+
+			return {
+				accessToken,
+				refreshToken,
+				fullName: user.fullName,
+				role: user.role,
+			};
+		} catch (error) {
+			throw new BadRequestException({
+				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				error: error.message,
+				message: 'Có lỗi xảy ra, vui lòng thử lại sau',
+			});
+		}
+	}
 
 	async signIn(signInDto: SignInDto) {
 		const { email, password } = signInDto;
@@ -149,7 +235,24 @@ export class AuthService {
 		};
 	}
 
+	async signInUser(_id: string) {
+		const user = await this.user_service.findOneByCondition({ _id });
+		if (user) {
+			const access_token = this.generateAccessToken({
+				userId: user._id.toString(),
+				role: user.role,
+			});
+			const refresh_token = this.generateRefreshToken({
+				userId: user._id.toString(),
+				role: user.role,
+			});
 
+			return {
+				access_token,
+				refresh_token,
+			};
+		}
+	}
 
 	async getAccessToken(user: TokenPayload): Promise<{
 		access_token: string;
