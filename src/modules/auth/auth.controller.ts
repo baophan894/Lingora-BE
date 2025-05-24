@@ -32,9 +32,33 @@ import { VerifiedOtpDTO } from './dto/verify-otp.dto';
 import { SignUpDto } from './dto/sign-up.dto';
 
 @Controller('auth')
-@ApiTags('auth')
+@ApiTags('Auth')
 export class AuthController {
 	constructor(private readonly auth_service: AuthService) { }
+
+	@Post('google')
+	async authWithGoogle(@Body() sign_in_token: SignInTokenDto) {
+		return this.auth_service.authenticateWithGoogle(sign_in_token);
+	}
+
+	@UseGuards(GoogleAuthGuard)
+	@Get('google/callback')
+	@ApiResponse({
+		status: 401,
+		description: 'Unauthorized',
+		content: {
+			'application/json': {
+				example: {
+					statusCode: 400,
+					message: 'Wrong credentials!!',
+					error: 'Bad Request!',
+				},
+			},
+		},
+	})
+	async authWithGoogleCallback(@Req() request) {
+		return request.user;
+	}
 
 	@Post('sign-up')
 	@ApiOperation({ summary: 'sign up with student' })

@@ -59,3 +59,19 @@ export function formatPhoneNumber(phone: string): string {
   if (phone.startsWith('0')) return `+84${phone.slice(1)}`;
   return phone;
 }
+
+
+export class SignUpGoogleDto {
+	@IsNotEmpty()
+	code?: string;
+
+	first_name: string;
+
+	last_name: string;
+
+	email: string;
+
+	avatar?: string;
+
+	is_registered_with_google?: boolean;
+}
