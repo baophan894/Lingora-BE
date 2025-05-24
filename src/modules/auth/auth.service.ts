@@ -22,6 +22,7 @@ import { UserService } from '@modules/users/users.service';
 import { SignUpDto, SignUpGoogleDto } from './dto/sign-up.dto';
 import { UserRepository } from '@repositories/user.repository';
 import { SignInTokenDto } from './dto/sign-in-token.dto';
+import { USER_ROLE } from '@modules/users/entities/users.entity';
 @Injectable()
 export class AuthService {
 	private SALT_ROUND = 11;
@@ -64,10 +65,17 @@ export class AuthService {
 
 	async authInWithGoogle(sign_up_dto: SignUpGoogleDto) {
 		try {
-			const user = await this.userRepository.findOneByCondition({ email: sign_up_dto.email });
-
+			let user = await this.userRepository.findOneByCondition({ email: sign_up_dto.email });
+			const fullName = `${sign_up_dto.first_name} ${sign_up_dto.last_name}`;
 			if (!user) {
-				throw new Error('Người dùng chưa được đăng ký');
+				user = await this.userRepository.create({
+					email: sign_up_dto.email,
+					fullName: fullName,
+					role: USER_ROLE.STUDENT, 
+					isActive: true,
+					avatarUrl: sign_up_dto.avatar,
+					gender: sign_up_dto.gender,
+				});
 			}
 
 			if (!user.isActive) {

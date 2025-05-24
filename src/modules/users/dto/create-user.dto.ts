@@ -31,17 +31,6 @@ export class CreateUserDto {
   @IsOptional()
   avatarUrl?: string;
 
-  @IsNotEmpty({ message: 'Mật khẩu không được để trống' })
-  @IsStrongPassword(
-    {
-      minLength: 6,
-      minLowercase: 1,
-      minUppercase: 1,
-      minNumbers: 1,
-      minSymbols: 1,
-    },
-    { message: 'Mật khẩu chưa đủ mạnh (ít nhất 6 ký tự, bao gồm chữ hoa, thường, số, ký tự đặc biệt)' },
-  )
   password: string;
 
   @IsOptional()

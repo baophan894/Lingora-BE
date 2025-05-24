@@ -71,8 +71,7 @@ export class User extends BaseEntity {
   @Prop({ required: true, unique: true })
   email: string;
 
-  @Prop({ required: true })
-  @Exclude()
+ 
   passwordHash: string;
 
   @Prop({ default: null })
