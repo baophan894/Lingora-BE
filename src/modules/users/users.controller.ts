@@ -22,7 +22,7 @@ export class UserController {
     return this.userService.findById(id);
   }
 
-  @Post()
+  @Post('create')
   async create(@Body() user: CreateUserDto): Promise<User> {
     return this.userService.create(user);
   }

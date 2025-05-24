@@ -1,9 +1,10 @@
-import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsPhoneNumber } from 'class-validator';
+import { IsEmail, IsNotEmpty } from 'class-validator';
 
 export class SignInDto {
-	@IsNotEmpty({ message: 'Tên đăng nhập không được để trống' })
-	username: string;
-	@IsNotEmpty({ message: 'Mật khẩu không được để trống' })
-	password: string;
+  @IsNotEmpty({ message: 'Email không được để trống' })
+  @IsEmail({}, { message: 'Email không hợp lệ' })
+  email: string;
+
+  @IsNotEmpty({ message: 'Mật khẩu không được để trống' })
+  password: string;
 }
