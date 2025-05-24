@@ -1,5 +1,5 @@
-import { User, UserDocument } from '@modules/students/entities/users.entity';
-import { UserRepositoryInterface } from '@modules/students/interfaces/users.interface';
+import { User, UserDocument } from '@modules/users/entities/users.entity';
+import { UserRepositoryInterface } from '@modules/users/interfaces/users.interface';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
@@ -39,6 +39,6 @@ export class UserRepository implements UserRepositoryInterface {
   }
 
   findOneByCondition(condition: FilterQuery<User>): Promise<User | null> {
-    return this.findOne(condition);
+    return this.userModel.findOne(condition);
   }
 }

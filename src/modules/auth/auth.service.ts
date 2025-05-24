@@ -18,8 +18,9 @@ import {
 } from 'src/constraints/jwt.constraint';
 import { ERRORS_DICTIONARY } from 'src/constraints/error-dictionary.constraint';
 import { SignInDto } from './dto/sign-in.dto';
-import { UserService } from '@modules/students/users.service';
+import { UserService } from '@modules/users/users.service';
 import { SignUpDto } from './dto/sign-up.dto';
+import { UserRepository } from '@repositories/user.repository';
 @Injectable()
 export class AuthService {
 	private SALT_ROUND = 11;
@@ -27,7 +28,7 @@ export class AuthService {
 		private config_service: ConfigService,
 
 		private readonly user_service: UserService,
-
+		private readonly userRepository: UserRepository,
 		private readonly jwt_service: JwtService,
 
 	) { }
@@ -51,8 +52,6 @@ export class AuthService {
 		});
 	}
 
-	
-
 	async storeRefreshToken(_id: string, token: string): Promise<void> {
 		try {
 			const hashed_token = await bcrypt.hash(token, this.SALT_ROUND);
@@ -63,114 +62,95 @@ export class AuthService {
 	}
 
 
-	async signIn(sign_in_dto: SignInDto) {
-		const { username, password } = sign_in_dto;
-		const normalizedUsername = username.toLowerCase()
-		const existed_user_username = await this.user_service.findOneByCondition({ username: normalizedUsername });
-		
+	async signIn(signInDto: SignInDto) {
+		const { email, password } = signInDto;
+		console.log('email', email);
+		console.log('password', password);
 
-		if (existed_user_username) {
-			const is_password_matched = await bcrypt.compare(
-				password,
-				existed_user_username.password,
-			);
-
-			if (!existed_user_username.isActive)
-				throw new BadRequestException({
-					message: ERRORS_DICTIONARY.USER_NOT_ACTIVE,
-					details: 'User not active',
-				});
-
-			if (!is_password_matched) {
-				throw new BadRequestException({
-					message: ERRORS_DICTIONARY.PASSWORD_NOT_MATCHED,
-					details: 'Password not matched',
-				});
-			}
-			const refresh_token = this.generateRefreshToken({
-				userId: existed_user_username._id.toString(),
-				role: 'user',
+		const user = await this.userRepository.findOneByCondition({ email: email });
+		console.log('user', user);
+		if (!user) {
+			throw new BadRequestException({
+				message: 'User not found',
+				details: 'Email not found',
 			});
-			await this.storeRefreshToken(
-				existed_user_username._id.toString(),
-				refresh_token,
-			);
-
-			
-			return {
-				access_token: this.generateAccessToken({
-					userId: existed_user_username._id.toString(),
-					role: 'user',
-				}),
-				refresh_token,
-			};
-		
 		}
-		throw new BadRequestException({
-			message: ERRORS_DICTIONARY.USER_NOT_FOUND,
-			details: 'Username not found',
+
+		const isPasswordMatched = await bcrypt.compare(password, user.passwordHash);
+		if (!isPasswordMatched) {
+			throw new BadRequestException({
+				message: 'Password not matched',
+				details: 'Incorrect password',
+			});
+		}
+
+		if (user.status !== 'active') {
+			throw new BadRequestException({
+				message: 'User is not active',
+				details: 'Account is locked or inactive',
+			});
+		}
+
+		const refresh_token = this.generateRefreshToken({
+			userId: user._id.toString(),
+			role: user.role,
 		});
-	}
 
-	async signUp(sign_up_dto: SignUpDto) {
-		try {
-			const {
-				first_name,
-				last_name,
-				phone_number,
-				organizationId,
-				username,
-				email,
-				date_of_birth,
-				password,
-			} = sign_up_dto;
-			const normalizedUsername = username.toLowerCase()
-			const user = await this.user_service.create({
-				first_name,
-				last_name,
-				date_of_birth,
-				phone_number,
-				email,
-				username: normalizedUsername,
-				password,
-		
-			});
+		await this.storeRefreshToken(user._id.toString(), refresh_token);
 
-			const refresh_token = this.generateRefreshToken({
+		return {
+			access_token: this.generateAccessToken({
 				userId: user._id.toString(),
-				role: 'user',
-			});
-			try {
-				await this.storeRefreshToken(
-					user._id.toString(),
-					refresh_token,
-				);
-				return {
-					access_token: this.generateAccessToken({
-						userId: user._id.toString(),
-						role: 'user',
-					}),
-					refresh_token,
-				};
-			} catch (error) {
-				console.error(
-					'Error storing refresh token or generating access token:',
-					error,
-				);
-				throw new Error(
-					'An error occurred while processing tokens. Please try again.',
-				);
-			}
-		} catch (error) {
-			throw error;
-		}
+				role: user.role,
+			}),
+			refresh_token,
+		};
 	}
 
-	
+	async signUp(signUpDto: SignUpDto) {
+		const { email, password, fullName, gender, phone_number, date_of_birth, role } = signUpDto;
+
+		const existingUser = await this.userRepository.findOneByCondition({ email });
+		if (existingUser) {
+			throw new BadRequestException({
+				message: 'Email already exists',
+				details: 'A user with this email already exists',
+			});
+		}
+
+		const passwordHash = await bcrypt.hash(password, 10);
+
+		const createdUser = await this.userRepository.create({
+			email,
+			passwordHash,
+			fullName,
+			gender,
+			phone_number,
+			date_of_birth,
+			role, // chắc chắn set user active luôn
+		});
+
+		// Tạo token giống như trong signIn
+		const refresh_token = this.generateRefreshToken({
+			userId: createdUser._id.toString(),
+			role: createdUser.role,
+		});
+
+		await this.storeRefreshToken(createdUser._id.toString(), refresh_token);
+
+		return {
+			message: 'User registered and logged in successfully',
+			userId: createdUser._id,
+			access_token: this.generateAccessToken({
+				userId: createdUser._id.toString(),
+				role: createdUser.role,
+			}),
+			refresh_token,
+		};
+	}
 
 
 
-	
 	async getAccessToken(user: TokenPayload): Promise<{
 		access_token: string;
 		refresh_token: string;
@@ -184,13 +164,4 @@ export class AuthService {
 		};
 	}
 
-	
-
-
-
-	
-
-	
-
-	
 }
