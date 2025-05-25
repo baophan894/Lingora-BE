@@ -169,7 +169,8 @@ export class AuthService {
 				details: 'Email not found',
 			});
 		}
-
+		
+		console.log('user.passwordHash', user.passwordHash);
 		const isPasswordMatched = await bcrypt.compare(password, user.passwordHash);
 		if (!isPasswordMatched) {
 			throw new BadRequestException({
