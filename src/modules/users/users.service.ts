@@ -1,5 +1,6 @@
 // src/user/user.service.ts
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { UserRepository } from '@repositories/user.repository';
 import { User } from './entities/users.entity';
 import { TokenPayload } from '@modules/auth/interfaces/token.interface';
@@ -7,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { access_token_private_key, refresh_token_private_key } from 'src/constraints/jwt.constraint';
 import { ConfigService } from '@nestjs/config';
 import { FilterQuery } from 'mongoose';
+import { ChangePasswordDTO } from './dto/change-password';
 
 
 @Injectable()
@@ -94,4 +96,30 @@ export class UserService {
     }
     return result;
   }
+
+  async changePassword(userId: string, dto: ChangePasswordDTO): Promise<void> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Verify old password
+    const isOldPasswordValid = await bcrypt.compare(
+      dto.old_password,
+      user.passwordHash,
+    );
+    if (!isOldPasswordValid) {
+      throw new BadRequestException('Old password is incorrect');
+    }
+
+    // Check if new passwords match
+    if (dto.new_password !== dto.confirm_password) {
+      throw new BadRequestException('New passwords do not match');
+    }
+
+    // Hash and save new password
+    const hashedPassword = await bcrypt.hash(dto.new_password, 10);
+    await this.userRepository.update(userId, { passwordHash: hashedPassword });
+  }
+
 }

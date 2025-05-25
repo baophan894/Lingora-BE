@@ -9,6 +9,7 @@ import {
 	IsStrongPassword,
 	Matches,
 	MaxLength,
+	IsString
 } from 'class-validator';
 
 
@@ -31,6 +32,9 @@ export class SignUpDto {
 
 	@IsOptional()
 	date_of_birth?: Date;
+
+	@IsNotEmpty()
+	@IsString()
 
 	password: string;
 

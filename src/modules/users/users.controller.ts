@@ -29,6 +29,16 @@ export class UserController {
     return this.userService.create(user);
   }
 
+  @Put('change-password')
+  @UseGuards(AuthGuard('jwt'))
+  async changePassword(
+    @Body() changePasswordDto: ChangePasswordDTO,
+    @Req() req: any, // Use standard Request type
+  ): Promise<void> {
+    return this.userService.changePassword(req.user.userId, changePasswordDto);
+  }
+
+
   @Put(':id')
   async update(@Param('id') id: string, @Body() user: UpdateUserDto): Promise<User> {
     return this.userService.update(id, user);
@@ -39,13 +49,5 @@ export class UserController {
     return this.userService.delete(id);
   }
 
-  @Put('change-password')
-  @UseGuards(AuthGuard('jwt'))
-  async changePassword(
-    @Body() changePasswordDto: ChangePasswordDTO,
-    @Req() req: any, // Use standard Request type
-  ): Promise<void> {
-    return this.userService.changePassword(req.user.userId, changePasswordDto);
-  }
 
 }
