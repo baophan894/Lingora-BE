@@ -1,4 +1,3 @@
-
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -10,7 +9,8 @@ import { APP_FILTER } from '@nestjs/core';
 import { GlobalExceptionFilter } from './exception-filters/global-exception.filter';
 import * as mongoose from 'mongoose';
 import { UserModule } from '@modules/students/users.module';
-
+import { ChatModule } from './modules/chat/chat.module';
+import { ChatService } from '@modules/chat/chat.service';
 
 @Module({
 	imports: [
@@ -49,9 +49,9 @@ import { UserModule } from '@modules/students/users.module';
 			},
 			inject: [ConfigService],
 		}),
-		
+
 		UserModule,
-	
+		ChatModule,
 	],
 	controllers: [AppController],
 	providers: [
@@ -60,6 +60,7 @@ import { UserModule } from '@modules/students/users.module';
 			provide: APP_FILTER,
 			useClass: GlobalExceptionFilter,
 		},
+		ChatService,
 	],
 })
 export class AppModule {}
