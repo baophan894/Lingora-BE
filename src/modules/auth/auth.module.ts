@@ -1,4 +1,4 @@
-import { UserService } from '@modules/students/users.service';
+import { UserService } from '@modules/users/users.service';
 // import { JwtRefreshTokenStrategy } from './strategies/jwt-refresh-token.strategy';
 import { JwtAccessTokenStrategy } from './strategies/jwt-access-token.strategy';
 import { JwtRefreshTokenStrategy } from './strategies/jwt-refresh-token.strategy';
@@ -12,7 +12,8 @@ import { HttpModule } from '@nestjs/axios';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { ResetTokenService } from '@modules/reset-token/reset-token.service';
 import { ResetTokenModule } from '@modules/reset-token/reset-token.module';
-import { UserModule } from '@modules/students/users.module';
+import { UserModule } from '@modules/users/users.module';
+import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
 	imports: [
@@ -39,6 +40,7 @@ import { UserModule } from '@modules/students/users.module';
 		JwtAccessTokenStrategy,
 		JwtRefreshTokenStrategy,
 		UserService,
+		GoogleStrategy,
 		ResetTokenService,
 	],
 })

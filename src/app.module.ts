@@ -8,9 +8,11 @@ import { database_config } from './configs/configuration.config';
 import { APP_FILTER } from '@nestjs/core';
 import { GlobalExceptionFilter } from './exception-filters/global-exception.filter';
 import * as mongoose from 'mongoose';
-import { UserModule } from '@modules/students/users.module';
+import { UserModule } from '@modules/users/users.module';
 import { ChatModule } from './modules/chat/chat.module';
-import { ChatService } from '@modules/chat/chat.service';
+import { ChatService } from '@modules/chat/chat.service';import { Auth } from 'firebase-admin/lib/auth/auth';
+import { AuthModule } from '@modules/auth/auth.module';
+
 
 @Module({
 	imports: [
@@ -49,7 +51,7 @@ import { ChatService } from '@modules/chat/chat.service';
 			},
 			inject: [ConfigService],
 		}),
-
+		AuthModule,
 		UserModule,
 		ChatModule,
 	],
