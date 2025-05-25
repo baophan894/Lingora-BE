@@ -71,13 +71,13 @@ export class User extends BaseEntity {
   @Prop({ required: true, unique: true })
   email: string;
 
- 
+  @Prop()
   passwordHash: string;
 
   @Prop({ default: null })
   googleId?: string;
 
-  @Prop({ enum: USER_ROLE, required: true })
+  @Prop({ enum: USER_ROLE, default: USER_ROLE.STUDENT })
   role: USER_ROLE;
 
   @Prop({ required: true, trim: true })
@@ -86,7 +86,7 @@ export class User extends BaseEntity {
   @Prop({ default: null })
   avatarUrl?: string;
 
-  @Prop({ enum: GENDER, default: null })
+  @Prop({ enum: GENDER, default: GENDER.MALE })
   gender?: GENDER;
 
   @Prop({ default: null })

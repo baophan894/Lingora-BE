@@ -184,7 +184,7 @@ export class AuthService {
 				details: 'Account is locked or inactive',
 			});
 		}
-
+		
 		const refresh_token = this.generateRefreshToken({
 			userId: user._id.toString(),
 			role: user.role,
@@ -193,6 +193,19 @@ export class AuthService {
 		await this.storeRefreshToken(user._id.toString(), refresh_token);
 
 		return {
+			user: {
+				_id: user._id,
+				email: user.email,
+				fullName: user.fullName,
+				avatarUrl: user.avatarUrl,	
+				role: user.role,
+				gender: user.gender || null,
+				phone_number: user.phone_number,
+				date_of_birth: user.date_of_birth,
+				address: user.address || null,
+				profile: user.profile || {},
+				status: user.status,
+			},
 			access_token: this.generateAccessToken({
 				userId: user._id.toString(),
 				role: user.role,
