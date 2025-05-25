@@ -18,8 +18,11 @@ import {
 } from 'src/constraints/jwt.constraint';
 import { ERRORS_DICTIONARY } from 'src/constraints/error-dictionary.constraint';
 import { SignInDto } from './dto/sign-in.dto';
-import { UserService } from '@modules/students/users.service';
-import { SignUpDto } from './dto/sign-up.dto';
+import { UserService } from '@modules/users/users.service';
+import { SignUpDto, SignUpGoogleDto } from './dto/sign-up.dto';
+import { UserRepository } from '@repositories/user.repository';
+import { SignInTokenDto } from './dto/sign-in-token.dto';
+import { USER_ROLE } from '@modules/users/entities/users.entity';
 @Injectable()
 export class AuthService {
 	private SALT_ROUND = 11;
@@ -27,7 +30,7 @@ export class AuthService {
 		private config_service: ConfigService,
 
 		private readonly user_service: UserService,
-
+		private readonly userRepository: UserRepository,
 		private readonly jwt_service: JwtService,
 
 	) { }
@@ -51,8 +54,6 @@ export class AuthService {
 		});
 	}
 
-	
-
 	async storeRefreshToken(_id: string, token: string): Promise<void> {
 		try {
 			const hashed_token = await bcrypt.hash(token, this.SALT_ROUND);
@@ -62,115 +63,206 @@ export class AuthService {
 		}
 	}
 
-
-	async signIn(sign_in_dto: SignInDto) {
-		const { username, password } = sign_in_dto;
-		const normalizedUsername = username.toLowerCase()
-		const existed_user_username = await this.user_service.findOneByCondition({ username: normalizedUsername });
-		
-
-		if (existed_user_username) {
-			const is_password_matched = await bcrypt.compare(
-				password,
-				existed_user_username.password,
-			);
-
-			if (!existed_user_username.isActive)
-				throw new BadRequestException({
-					message: ERRORS_DICTIONARY.USER_NOT_ACTIVE,
-					details: 'User not active',
-				});
-
-			if (!is_password_matched) {
-				throw new BadRequestException({
-					message: ERRORS_DICTIONARY.PASSWORD_NOT_MATCHED,
-					details: 'Password not matched',
+	async authInWithGoogle(sign_up_dto: SignUpGoogleDto) {
+		try {
+			let user = await this.userRepository.findOneByCondition({ email: sign_up_dto.email });
+			const fullName = `${sign_up_dto.first_name} ${sign_up_dto.last_name}`;
+			if (!user) {
+				user = await this.userRepository.create({
+					email: sign_up_dto.email,
+					fullName: fullName,
+					role: USER_ROLE.STUDENT, 
+					isActive: true,
+					avatarUrl: sign_up_dto.avatar,
+					gender: sign_up_dto.gender,
 				});
 			}
-			const refresh_token = this.generateRefreshToken({
-				userId: existed_user_username._id.toString(),
-				role: 'user',
-			});
-			await this.storeRefreshToken(
-				existed_user_username._id.toString(),
-				refresh_token,
-			);
 
-			
-			return {
-				access_token: this.generateAccessToken({
-					userId: existed_user_username._id.toString(),
-					role: 'user',
-				}),
-				refresh_token,
-			};
-		
+			if (!user.isActive) {
+				throw new HttpException(
+					{ message: 'Tài khoản đã bị khóa', error: 'Unauthorized' },
+					HttpStatus.UNAUTHORIZED,
+				);
+			}
+
+			return await this.signInUser(user._id.toString());
+		} catch (error) {
+			console.error('Auth error:', error);
+			throw new BadRequestException({
+				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				error: error.message,
+				message: 'Có lỗi xảy ra, vui lòng thử lại sau',
+			});
 		}
-		throw new BadRequestException({
-			message: ERRORS_DICTIONARY.USER_NOT_FOUND,
-			details: 'Username not found',
-		});
 	}
 
-	async signUp(sign_up_dto: SignUpDto) {
+
+	async authenticateWithGoogle(sign_in_token: SignInTokenDto) {
 		try {
-			const {
-				first_name,
-				last_name,
-				phone_number,
-				organizationId,
-				username,
-				email,
-				date_of_birth,
-				password,
-			} = sign_up_dto;
-			const normalizedUsername = username.toLowerCase()
-			const user = await this.user_service.create({
-				first_name,
-				last_name,
-				date_of_birth,
-				phone_number,
-				email,
-				username: normalizedUsername,
-				password,
-		
+			const { token, avatar } = sign_in_token;
+			const decodedToken = this.jwt_service.decode(token) as { email: string };
+
+			if (!decodedToken?.email) {
+				throw new HttpException(
+					{ message: 'Token không hợp lệ', error: 'Bad Request' },
+					HttpStatus.BAD_REQUEST,
+				);
+			}
+
+			const email = decodedToken.email;
+
+			const user = await this.userRepository.findOneByCondition({ email });
+
+			if (!user) {
+				throw new HttpException(
+					{ message: 'Không tìm thấy người dùng', error: 'Unauthorized' },
+					HttpStatus.UNAUTHORIZED,
+				);
+			}
+
+			if (!user.isActive) {
+				throw new HttpException(
+					{ message: 'Tài khoản của bạn đã bị khóa', error: 'Unauthorized' },
+					HttpStatus.UNAUTHORIZED,
+				);
+			}
+
+			if (avatar && user.avatarUrl !== avatar) {
+				await this.user_service.update(user.id, { avatarUrl: avatar });
+			}
+
+			const accessToken = this.generateAccessToken({
+				userId: user.id,
+				role: user.role,
 			});
 
+			const refreshToken = this.generateRefreshToken({
+				userId: user.id,
+				role: user.role,
+			});
+
+			return {
+				accessToken,
+				refreshToken,
+				fullName: user.fullName,
+				role: user.role,
+			};
+		} catch (error) {
+			throw new BadRequestException({
+				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				error: error.message,
+				message: 'Có lỗi xảy ra, vui lòng thử lại sau',
+			});
+		}
+	}
+
+	async signIn(signInDto: SignInDto) {
+		const { email, password } = signInDto;
+		console.log('email', email);
+		console.log('password', password);
+
+		const user = await this.userRepository.findOneByCondition({ email: email });
+		console.log('user', user);
+		if (!user) {
+			throw new BadRequestException({
+				message: 'User not found',
+				details: 'Email not found',
+			});
+		}
+		
+		console.log('user.passwordHash', user.passwordHash);
+		const isPasswordMatched = await bcrypt.compare(password, user.passwordHash);
+		if (!isPasswordMatched) {
+			throw new BadRequestException({
+				message: 'Password not matched',
+				details: 'Incorrect password',
+			});
+		}
+
+		if (user.status !== 'active') {
+			throw new BadRequestException({
+				message: 'User is not active',
+				details: 'Account is locked or inactive',
+			});
+		}
+
+		const refresh_token = this.generateRefreshToken({
+			userId: user._id.toString(),
+			role: user.role,
+		});
+
+		await this.storeRefreshToken(user._id.toString(), refresh_token);
+
+		return {
+			access_token: this.generateAccessToken({
+				userId: user._id.toString(),
+				role: user.role,
+			}),
+			refresh_token,
+		};
+	}
+
+	async signUp(signUpDto: SignUpDto) {
+		const { email, password, fullName, gender, phone_number, date_of_birth, role } = signUpDto;
+
+		const existingUser = await this.userRepository.findOneByCondition({ email });
+		if (existingUser) {
+			throw new BadRequestException({
+				message: 'Email already exists',
+				details: 'A user with this email already exists',
+			});
+		}
+
+		const passwordHash = await bcrypt.hash(password, 10);
+
+		const createdUser = await this.userRepository.create({
+			email,
+			passwordHash,
+			fullName,
+			gender,
+			phone_number,
+			date_of_birth,
+			role, // chắc chắn set user active luôn
+		});
+
+		// Tạo token giống như trong signIn
+		const refresh_token = this.generateRefreshToken({
+			userId: createdUser._id.toString(),
+			role: createdUser.role,
+		});
+
+		await this.storeRefreshToken(createdUser._id.toString(), refresh_token);
+
+		return {
+			message: 'User registered and logged in successfully',
+			userId: createdUser._id,
+			access_token: this.generateAccessToken({
+				userId: createdUser._id.toString(),
+				role: createdUser.role,
+			}),
+			refresh_token,
+		};
+	}
+
+	async signInUser(_id: string) {
+		const user = await this.user_service.findOneByCondition({ _id });
+		if (user) {
+			const access_token = this.generateAccessToken({
+				userId: user._id.toString(),
+				role: user.role,
+			});
 			const refresh_token = this.generateRefreshToken({
 				userId: user._id.toString(),
-				role: 'user',
+				role: user.role,
 			});
-			try {
-				await this.storeRefreshToken(
-					user._id.toString(),
-					refresh_token,
-				);
-				return {
-					access_token: this.generateAccessToken({
-						userId: user._id.toString(),
-						role: 'user',
-					}),
-					refresh_token,
-				};
-			} catch (error) {
-				console.error(
-					'Error storing refresh token or generating access token:',
-					error,
-				);
-				throw new Error(
-					'An error occurred while processing tokens. Please try again.',
-				);
-			}
-		} catch (error) {
-			throw error;
+
+			return {
+				access_token,
+				refresh_token,
+			};
 		}
 	}
 
-	
-
-
-
-	
 	async getAccessToken(user: TokenPayload): Promise<{
 		access_token: string;
 		refresh_token: string;
@@ -184,13 +276,4 @@ export class AuthService {
 		};
 	}
 
-	
-
-
-
-	
-
-	
-
-	
 }

@@ -5,6 +5,8 @@ import { User, UserSchemaFactory } from './entities/users.entity';
 import { UserController } from './users.controller';
 import { UserService } from './users.service';
 import { UserRepository } from '@repositories/user.repository';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
 	imports: [
@@ -21,9 +23,12 @@ import { UserRepository } from '@repositories/user.repository';
 	controllers: [UserController],
 	providers: [
 		UserService,
+		JwtService,
+		ConfigService,
+		UserRepository,
 		{ provide: 'UsersRepositoryInterface', useClass: UserRepository },
 	
 	],
-	exports: [UserService, 'UsersRepositoryInterface', MongooseModule],
+	exports: [UserService, 'UsersRepositoryInterface',UserRepository, MongooseModule],
 })
 export class UserModule {}

@@ -1,9 +1,12 @@
 // src/user/user.service.ts
-import * as bcrypt from 'bcryptjs';
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { UserRepository } from '@repositories/user.repository';
 import { User } from './entities/users.entity';
-import { ChangePasswordDTO } from './dto/change-password';
+import { TokenPayload } from '@modules/auth/interfaces/token.interface';
+import { JwtService } from '@nestjs/jwt';
+import { access_token_private_key, refresh_token_private_key } from 'src/constraints/jwt.constraint';
+import { ConfigService } from '@nestjs/config';
+import { FilterQuery } from 'mongoose';
 
 
 @Injectable()
@@ -12,18 +15,41 @@ export class UserService {
   constructor(
     @Inject('UsersRepositoryInterface')
     private readonly userRepository: UserRepository,
+
+    private readonly jwt_service: JwtService,
+    private config_service: ConfigService,
   ) { }
+
+  generateAccessToken(payload: TokenPayload) {
+    return this.jwt_service.sign(payload, {
+      algorithm: 'RS256',
+      privateKey: access_token_private_key,
+      expiresIn: `${this.config_service.get<string>(
+        'JWT_ACCESS_TOKEN_EXPIRATION_TIME',
+      )}s`,
+    });
+  }
+
+  generateRefreshToken(payload: TokenPayload) {
+    return this.jwt_service.sign(payload, {
+      algorithm: 'RS256',
+      privateKey: refresh_token_private_key,
+      expiresIn: `${this.config_service.get<string>(
+        'JWT_REFRESH_TOKEN_EXPIRATION_TIME',
+      )}s`,
+    });
+  }
 
   async setCurrentRefreshToken(
     _id: string,
     refreshToken: string,
   ): Promise<void> {
     try {
-      const student = await this.userRepository.findOneByCondition({ _id });
-      if (!student) {
+      const user = await this.userRepository.findOneByCondition({ _id });
+      if (!user) {
         throw new Error('User not found');
       }
-      student.current_refresh_token = refreshToken;
+      user.current_refresh_token = refreshToken;
       await this.userRepository.update(_id, {
         current_refresh_token: refreshToken,
       });
@@ -59,36 +85,13 @@ export class UserService {
     return deleted;
   }
 
-  async findOneByCondition(condition: any, selectFields?: (keyof User)[]): Promise<User | null> {
-    return this.userRepository.findOneByCondition({
-      where: condition,
-      select: selectFields,
-    });
+  async findOneByCondition(
+    condition: FilterQuery<User>,
+  ): Promise<User | null> {
+    const result = await this.userRepository.findOneByCondition(condition);
+    if (!result) {
+      throw new NotFoundException(`Admin with ${condition} not found`);
+    }
+    return result;
   }
-
-  async changePassword(userId: string, dto: ChangePasswordDTO): Promise<void> {
-    const user = await this.userRepository.findById(userId);
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    // Verify old password
-    const isOldPasswordValid = await bcrypt.compare(
-      dto.old_password,
-      user.password
-    );
-    if (!isOldPasswordValid) {
-      throw new BadRequestException('Old password is incorrect');
-    }
-
-    // Check if new passwords match
-    if (dto.new_password !== dto.confirm_password) {
-      throw new BadRequestException('New passwords do not match');
-    }
-
-    // Hash and save new password
-    const hashedPassword = await bcrypt.hash(dto.new_password, 10);
-    await this.userRepository.update(userId, { password: hashedPassword });
-  }
-
 }

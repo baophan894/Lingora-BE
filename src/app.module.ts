@@ -9,7 +9,9 @@ import { database_config } from './configs/configuration.config';
 import { APP_FILTER } from '@nestjs/core';
 import { GlobalExceptionFilter } from './exception-filters/global-exception.filter';
 import * as mongoose from 'mongoose';
-import { UserModule } from '@modules/students/users.module';
+import { UserModule } from '@modules/users/users.module';
+import { Auth } from 'firebase-admin/lib/auth/auth';
+import { AuthModule } from '@modules/auth/auth.module';
 
 
 @Module({
@@ -49,7 +51,7 @@ import { UserModule } from '@modules/students/users.module';
 			},
 			inject: [ConfigService],
 		}),
-		
+		AuthModule,
 		UserModule,
 	
 	],

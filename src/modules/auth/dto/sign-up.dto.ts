@@ -1,6 +1,8 @@
+import { GENDER, USER_ROLE } from '@modules/users/entities/users.entity';
 import { Transform } from 'class-transformer';
 import {
 	IsEmail,
+	IsEnum,
 	IsNotEmpty,
 	IsOptional,
 	IsPhoneNumber,
@@ -9,56 +11,63 @@ import {
 	MaxLength,
 } from 'class-validator';
 
+
 export class SignUpDto {
-	@IsNotEmpty({ message: 'Tên không được để trống' })
-	@MaxLength(50)
-	first_name: string;
+
 
 	@IsNotEmpty({ message: 'Tên không được để trống' })
-	@MaxLength(50)
-	last_name: string;
+	@MaxLength(50, { message: 'Tên không được vượt quá 50 ký tự' })
+	fullName: string;
 
 	@IsOptional()
-	@IsPhoneNumber('VN', { message: 'Số điện thoại không thuộc vùng Việt Nam' })
+	@IsPhoneNumber('VN', { message: 'Số điện thoại không hợp lệ tại Việt Nam' })
 	@Transform(({ value }) => formatPhoneNumber(value))
 	phone_number?: string;
 
-	@IsOptional()
+	@IsNotEmpty({ message: 'Email không được để trống' })
 	@IsEmail({}, { message: 'Email không hợp lệ' })
-	@MaxLength(50)
-	email?: string;
+	@MaxLength(100)
+	email: string;
 
 	@IsOptional()
 	date_of_birth?: Date;
 
-	@IsNotEmpty({ message: 'username không được để trống' })
-	@MaxLength(50)
-	@Matches(/^[\w-]+$/, {
-		message:
-			'username chỉ được chứa chữ số hoặc dấu - và không có khoảng trắng',
-	})
-	username: string;
+	password: string;
 
 	@IsOptional()
-	organizationId: string;
+	@IsEnum(GENDER, { message: 'Giới tính không hợp lệ' })
+	gender?: GENDER;
 
-	@IsNotEmpty({ message: 'Mật khẩu không được để trống' })
-	@IsStrongPassword({
-		minLength: 6,
-		minLowercase: 1,
-		minUppercase: 1,
-		minNumbers: 1,
-		minSymbols: 1,
-	})
-	password: string;
+	@IsOptional()
+	@IsEnum(USER_ROLE, { message: 'Vai trò không hợp lệ' })
+	role?: USER_ROLE;
+
 }
+
+// Format phone number to +84 format
 export function formatPhoneNumber(phone: string): string {
 	if (!phone) return phone;
-	if (phone.startsWith('+84')) {
-		return phone;
-	}
-	if (phone.startsWith('0')) {
-		return `+84${phone.slice(1)}`;
-	}
+	if (phone.startsWith('+84')) return phone;
+	if (phone.startsWith('0')) return `+84${phone.slice(1)}`;
 	return phone;
+}
+
+
+export class SignUpGoogleDto {
+	@IsNotEmpty()
+	code?: string;
+
+	first_name: string;
+
+	last_name: string;
+
+	email: string;
+
+	avatar?: string;
+
+	@IsOptional()
+	@IsEnum(GENDER, { message: 'Giới tính không hợp lệ' })
+	gender?: GENDER;
+
+	is_registered_with_google?: boolean;
 }
