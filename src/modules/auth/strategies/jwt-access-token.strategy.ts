@@ -3,9 +3,6 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { TokenPayload } from '../interfaces/token.interface';
 import { access_token_public_key } from 'src/constraints/jwt.constraint';
-
-
-
 import { UnauthorizedException } from '@nestjs/common';
 import { UserService } from '@modules/users/users.service';
 import { UserRepository } from '@repositories/user.repository';
