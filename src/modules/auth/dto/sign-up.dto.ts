@@ -33,9 +33,7 @@ export class SignUpDto {
 	@IsOptional()
 	date_of_birth?: Date;
 
-	@IsNotEmpty()
-	@IsString()
-
+	@IsNotEmpty({ message: 'Mật khẩu không được để trống' })
 	password: string;
 
 	@IsOptional()
