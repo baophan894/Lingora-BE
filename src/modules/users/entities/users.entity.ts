@@ -130,7 +130,7 @@ export const UserSchema = SchemaFactory.createForClass(User);
 
 export const UserSchemaFactory = () => {
   const schema = UserSchema;
-  UserSchema.index({ username: 1 }, { unique: true }); // đang lỗi vì username không tồn tại
+  UserSchema.index({ username: 1 }, { unique: true });
   UserSchema.set('autoIndex', false);
   schema.pre('findOneAndDelete', async function (next: NextFunction) {
     const user = await this.model.findOne(this.getFilter());
