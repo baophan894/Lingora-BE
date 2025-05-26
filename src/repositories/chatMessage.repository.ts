@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery, UpdateResult } from 'mongoose';
-import { ChatMessage, ChatMessageDocument } from '@modules/chat/entities/chat-message.entity';
+import {
+	ChatMessage,
+	ChatMessageDocument,
+} from '@modules/chat/entities/chat-message.entity';
 
 @Injectable()
 export class ChatMessageRepository {
 	constructor(
-		@InjectModel(ChatMessage.name) private chatMessageModel: Model<ChatMessageDocument>,
+		@InjectModel(ChatMessage.name)
+		private chatMessageModel: Model<ChatMessageDocument>,
 	) {}
 
 	async create(chatMessage: Partial<ChatMessage>): Promise<ChatMessage> {
@@ -14,9 +18,10 @@ export class ChatMessageRepository {
 		return created.save();
 	}
 
-	async updateMany(condition: FilterQuery<ChatMessage>, update: Partial<ChatMessage>): Promise<UpdateResult> {
+	async updateMany(
+		condition: FilterQuery<ChatMessage>,
+		update: Partial<ChatMessage>,
+	): Promise<UpdateResult> {
 		return this.chatMessageModel.updateMany(condition, update).exec();
 	}
-    
 }
-

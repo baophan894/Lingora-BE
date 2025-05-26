@@ -12,7 +12,7 @@ import { SendMessageDto } from './dto/send-message.dto';
 import { UseGuards } from '@nestjs/common';
 import { WsJwtGuard } from './guards/ws-jwt.guard';
 import { JwtService } from '@nestjs/jwt';
-import { User } from '../students/entities/users.entity';
+import { User } from '@modules/users/entities/users.entity';
 
 @WebSocketGateway({
 	cors: {

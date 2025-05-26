@@ -9,9 +9,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { ChatRepository } from '@repositories/chat.repository';
 import { UserRepository } from '@repositories/user.repository';
 import { ChatMessageRepository } from '@repositories/chatMessage.repository';
-import { UserSchemaFactory } from '@modules/students/entities/users.entity';
-import { User } from '@modules/students/entities/users.entity';
-
+import { User } from '@modules/users/entities/users.entity';
+import { UserSchemaFactory } from '@modules/users/entities/users.entity';
+import { UserService } from '@modules/users/users.service';
 @Module({
 	imports: [
 		MongooseModule.forFeatureAsync([
@@ -32,15 +32,13 @@ import { User } from '@modules/students/entities/users.entity';
 				imports: [MongooseModule.forFeature([])],
 			},
 		]),
-		JwtModule.register({
-			secret: process.env.JWT_SECRET,
-			signOptions: { expiresIn: '1d' },
-		}),
+		JwtModule.register({}),
 	],
 	controllers: [ChatController],
 	providers: [
 		ChatService,
 		ChatGateway,
+		UserService,
 		{ provide: 'ChatRepositoryInterface', useClass: ChatRepository },
 		{ provide: 'UsersRepositoryInterface', useClass: UserRepository },
 		{

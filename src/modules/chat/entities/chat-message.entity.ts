@@ -1,5 +1,4 @@
 import { BaseEntity } from '@modules/shared/base/base.entity';
-import { User } from '@modules/students/entities/users.entity';
 import { Schema, Prop } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { SchemaFactory } from '@nestjs/mongoose';

@@ -2,7 +2,6 @@ import { Schema, Prop } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { SchemaFactory } from '@nestjs/mongoose';
 import { BaseEntity } from '@modules/shared/base/base.entity';
-import { User } from '@modules/students/entities/users.entity';
 import { ChatMessage } from './chat-message.entity';
 import { NextFunction } from 'express';
 

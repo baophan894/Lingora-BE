@@ -3,11 +3,11 @@ import { Chat } from './entities/chat.entity';
 import { ChatMessage } from './entities/chat-message.entity';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { SendMessageDto } from './dto/send-message.dto';
-import { User } from '../students/entities/users.entity';
 import { ChatRepository } from '@repositories/chat.repository';
 import { UserRepository } from '@repositories/user.repository';
 import { Types } from 'mongoose';
 import { ChatMessageRepository } from '@repositories/chatMessage.repository';
+import { User } from '@modules/users/entities/users.entity';
 
 @Injectable()
 export class ChatService {
@@ -21,20 +21,22 @@ export class ChatService {
 	) {}
 
 	async createChat(
-		currentUser: User,
+		currentUser: any,
 		createChatDto: CreateChatDto,
 	): Promise<Chat> {
 		const participant = await this.userRepository.findById(
-			createChatDto.participantId,
+			createChatDto.participantId.toString(),
 		);
+		console.log('participant', participant);
+		console.log('currentUser', currentUser);
 		if (!participant) {
-			throw new NotFoundException('Participant not found');
+			throw new NotFoundException('Không tìm thấy participant');
 		}
 
 		const existingChat = await this.chatRepository.findOne({
 			$or: [
-				{ participant1: currentUser._id, participant2: participant._id },
-				{ participant1: participant._id, participant2: currentUser._id },
+				{ participant1: currentUser.userId, participant2: participant._id },
+				{ participant1: participant._id, participant2: currentUser.userId },
 			],
 		});
 
@@ -43,7 +45,7 @@ export class ChatService {
 		}
 
 		const newChat = new Chat({
-			participant1: new Types.ObjectId(currentUser._id.toString()),
+			participant1: new Types.ObjectId(currentUser.userId.toString()),
 			participant2: new Types.ObjectId(participant._id.toString()),
 			messages: [],
 			lastMessageAt: new Date(),
@@ -52,10 +54,14 @@ export class ChatService {
 		return this.chatRepository.create(newChat);
 	}
 
-	async getChats(currentUser: User): Promise<Chat[]> {
-		return this.chatRepository.findAll({
-			$or: [{ participant1: currentUser }, { participant2: currentUser }],
-		});
+	async getChats(currentUser: any): Promise<Chat[]> {
+		const userObjectId = new Types.ObjectId(currentUser.userId);
+		return this.chatRepository.findAll(
+			{
+				$or: [{ participant1: userObjectId }, { participant2: userObjectId }],
+			},
+			['participant1', 'participant2'],
+		);
 	}
 
 	async getChatById(chatId: string): Promise<Chat> {
@@ -68,13 +74,15 @@ export class ChatService {
 
 	async getChatMessages(
 		chatId: string,
-		currentUser: User,
+		currentUser: any,
 	): Promise<ChatMessage[]> {
+		const chatIdObjectId = new Types.ObjectId(chatId);
+		const currentUserObjectId = new Types.ObjectId(currentUser.userId);
 		const chat = await this.chatRepository.findOne({
-			_id: chatId,
+			_id: chatIdObjectId,
 			$or: [
-				{ participant1: currentUser._id },
-				{ participant2: currentUser._id },
+				{ participant1: currentUserObjectId },
+				{ participant2: currentUserObjectId },
 			],
 		});
 
@@ -87,14 +95,14 @@ export class ChatService {
 
 	async sendMessage(
 		chatId: string,
-		currentUser: User,
+		currentUser: any,
 		sendMessageDto: SendMessageDto,
 	): Promise<ChatMessage> {
 		const chat = await this.chatRepository.findOne({
 			_id: chatId,
 			$or: [
-				{ participant1: currentUser._id },
-				{ participant2: currentUser._id },
+				{ participant1: currentUser.userId },
+				{ participant2: currentUser.userId },
 			],
 		});
 
@@ -102,12 +110,13 @@ export class ChatService {
 			throw new NotFoundException('Chat not found');
 		}
 
-		const receiverId = chat.participant1.toString() === currentUser._id.toString()
-			? chat.participant2
-			: chat.participant1;
+		const receiverId =
+			chat.participant1.toString() === currentUser.userId.toString()
+				? chat.participant2
+				: chat.participant1;
 
 		const message = await this.chatMessageRepository.create({
-			senderId: currentUser._id.toString(),
+			senderId: currentUser.userId.toString(),
 			receiverId: receiverId.toString(),
 			content: sendMessageDto.content,
 			chatId: chatId,
@@ -123,12 +132,12 @@ export class ChatService {
 		return message;
 	}
 
-	async markMessagesAsRead(chatId: string, currentUser: User): Promise<void> {
+	async markMessagesAsRead(chatId: string, currentUser: any): Promise<void> {
 		const chat = await this.chatRepository.findOne({
 			_id: chatId,
 			$or: [
-				{ participant1: currentUser._id },
-				{ participant2: currentUser._id },
+				{ participant1: currentUser.userId },
+				{ participant2: currentUser.userId },
 			],
 		});
 
@@ -139,7 +148,7 @@ export class ChatService {
 		await this.chatMessageRepository.updateMany(
 			{
 				chat: chatId,
-				receiverId: currentUser._id,
+				receiverId: currentUser.userId,
 				isRead: false,
 			},
 			{ isRead: true },
@@ -149,9 +158,9 @@ export class ChatService {
 		return this.userRepository.findById(userId);
 	}
 
-	// async getUnreadCount(currentUser: User): Promise<number> {
+	// async getUnreadCount(currentUser: any): Promise<number> {
 	// 	return this.chatMessageRepository.countDocuments({
-	// 		receiverId: currentUser._id,
+	// 		receiverId: currentUser.userId,
 	// 		isRead: false,
 	// 	});
 	// }

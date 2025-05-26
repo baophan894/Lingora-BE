@@ -11,15 +11,24 @@ import { ChatService } from './chat.service';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { WsJwtGuard } from './guards/ws-jwt.guard';
+import { JwtAccessTokenGuard } from '@modules/auth/guards/jwt-access-token.guard';
+import { ApiTags } from '@nestjs/swagger';
+import { User, USER_ROLE, USER_STATUS } from '@modules/users/entities/users.entity';
+import { Types } from 'mongoose';
+import { UserRepository } from '@repositories/user.repository';
+import { UserService } from '@modules/users/users.service';
 
+@ApiTags('Chats')
 @Controller('chats')
-@UseGuards(WsJwtGuard)
+// @UseGuards(WsJwtGuard)
+@UseGuards(JwtAccessTokenGuard)
 export class ChatController {
-	constructor(private readonly chatService: ChatService) {}
+	constructor(private readonly chatService: ChatService,private readonly userService: UserService) {}
 
 	@Post()
-	createChat(@Request() req, @Body() createChatDto: CreateChatDto) {
-		return this.chatService.createChat(req.user, createChatDto);
+	async createChat(@Request() req, @Body() createChatDto: CreateChatDto) {
+		console.log("req.user",req.user);
+		return this.chatService.createChat(req.user,createChatDto);
 	}
 
 	@Get()

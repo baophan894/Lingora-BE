@@ -15,8 +15,16 @@ export class ChatRepository {
 		return created.save();
 	}
 
-	async findAll(condition: FilterQuery<Chat>): Promise<Chat[]> {
-		return this.chatModel.find(condition).exec();
+	// async findAll(condition: FilterQuery<Chat>): Promise<Chat[]> {
+	// 	return this.chatModel.find(condition).exec();
+	// }
+
+	async findAll(filter : FilterQuery<Chat>, populateFields : string[] = []) {
+		let query = this.chatModel.find(filter);
+		populateFields.forEach(field => {
+			query = query.populate(field);
+		});
+		return query.exec();
 	}
 
 	async findOne(condition: FilterQuery<Chat>): Promise<Chat | null> {
