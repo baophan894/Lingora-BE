@@ -7,6 +7,7 @@ import { UserService } from './users.service';
 import { UserRepository } from '@repositories/user.repository';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { EmailService } from '@modules/email/email.service';
 
 @Module({
 	imports: [
@@ -18,6 +19,7 @@ import { ConfigService } from '@nestjs/config';
 				imports: [MongooseModule.forFeature([])],
 			},
 		]),
+		
 	
 	],
 	controllers: [UserController],
@@ -26,6 +28,7 @@ import { ConfigService } from '@nestjs/config';
 		JwtService,
 		ConfigService,
 		UserRepository,
+		EmailService,
 		{ provide: 'UsersRepositoryInterface', useClass: UserRepository },
 	
 	],

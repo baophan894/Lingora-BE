@@ -32,6 +32,7 @@ export class SignUpDto {
 	@IsOptional()
 	date_of_birth?: Date;
 
+	@IsOptional()
 	password: string;
 
 	@IsOptional()

@@ -12,10 +12,16 @@ export class JwtAccessTokenGuard extends AuthGuard('jwt') {
 	canActivate(
 		context: ExecutionContext,
 	): boolean | Promise<boolean> | Observable<boolean> {
+		const req = context.switchToHttp().getRequest();
+		console.log('Auth Header:', req.headers.authorization);
+
 		const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
 			context.getHandler(),
 			context.getClass(),
 		]);
+		console.log('JwtAccessTokenGuard canActivate called', isPublic, context.getHandler(), context.getClass()
+
+		)
 		if (isPublic) {
 			return true;
 		}

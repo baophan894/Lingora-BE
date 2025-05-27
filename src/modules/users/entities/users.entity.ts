@@ -124,6 +124,18 @@ export class User extends BaseEntity {
   @Prop()
   @Exclude()
   current_refresh_token?: string;
+
+  @Prop({ nullable: true })
+  emailVerificationToken: string;
+
+  @Prop({ nullable: true })
+  resetPasswordToken: string;
+
+  @Prop({ nullable: true })
+  resetPasswordExpires: Date;
+
+  @Prop({ default: false })
+  isVerified: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
