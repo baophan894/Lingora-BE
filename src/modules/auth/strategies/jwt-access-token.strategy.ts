@@ -3,9 +3,6 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { TokenPayload } from '../interfaces/token.interface';
 import { access_token_public_key } from 'src/constraints/jwt.constraint';
-
-
-
 import { UnauthorizedException } from '@nestjs/common';
 import { UserService } from '@modules/users/users.service';
 import { UserRepository } from '@repositories/user.repository';
@@ -24,6 +21,7 @@ export class JwtAccessTokenStrategy extends PassportStrategy(Strategy, 'jwt') {
 	}
 
 	async validate(payload: TokenPayload) {
+		console.log('JwtAccessTokenStrategy :', payload);
 		const { userId, role } = payload;
 		const user = await this.userService.findById(userId);
 		if (!user) {

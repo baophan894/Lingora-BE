@@ -78,7 +78,7 @@ export class User extends BaseEntity {
   @Prop({ default: null })
   googleId?: string;
 
-  @Prop({ enum: USER_ROLE, required: true })
+  @Prop({ enum: USER_ROLE, default: USER_ROLE.STUDENT })
   role: USER_ROLE;
 
   @Prop({ required: true, trim: true })
@@ -87,7 +87,7 @@ export class User extends BaseEntity {
   @Prop({ default: null })
   avatarUrl?: string;
 
-  @Prop({ enum: GENDER, default: null })
+  @Prop({ enum: GENDER, default: GENDER.MALE })
   gender?: GENDER;
 
   @Prop({ default: null })
@@ -131,7 +131,7 @@ export const UserSchema = SchemaFactory.createForClass(User);
 
 export const UserSchemaFactory = () => {
   const schema = UserSchema;
-  UserSchema.index({ username: 1 }, { unique: true }); // đang lỗi vì username không tồn tại
+  UserSchema.index({ username: 1 }, { unique: true });
   UserSchema.set('autoIndex', false);
   schema.pre('findOneAndDelete', async function (next: NextFunction) {
     const user = await this.model.findOne(this.getFilter());

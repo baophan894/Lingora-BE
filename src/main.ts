@@ -17,6 +17,7 @@ async function bootstrap() {
 		origin: '*', 
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
 		allowedHeaders: '*', 
+		credentials: true,
 	});
 	configSwagger(app);
 	const config_service = app.get(ConfigService);
