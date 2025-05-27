@@ -9,6 +9,7 @@ import {
 	IsStrongPassword,
 	Matches,
 	MaxLength,
+	IsString
 } from 'class-validator';
 
 
@@ -31,7 +32,7 @@ export class SignUpDto {
 
 	@IsOptional()
 	date_of_birth?: Date;
-
+	
 	@IsOptional()
 	password: string;
 
@@ -43,6 +44,8 @@ export class SignUpDto {
 	@IsEnum(USER_ROLE, { message: 'Vai trò không hợp lệ' })
 	role?: USER_ROLE;
 
+	@IsOptional()
+	avatarUrl?: string;
 }
 
 // Format phone number to +84 format

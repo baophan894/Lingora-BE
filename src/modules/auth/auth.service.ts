@@ -77,7 +77,7 @@ export class AuthService {
 					fullName: fullName,
 					role: USER_ROLE.STUDENT,
 					isActive: true,
-					avatarUrl: sign_up_dto.avatar,
+					avatarUrl: sign_up_dto.avatar || 'https://res.cloudinary.com/dvcpy4kmm/image/upload/v1748274375/xtr9ktmr1loktzzl7m7f.svg',
 					gender: sign_up_dto.gender,
 				});
 			}
@@ -189,7 +189,7 @@ export class AuthService {
 				details: 'Account is locked or inactive',
 			});
 		}
-
+		
 		const refresh_token = this.generateRefreshToken({
 			userId: user._id.toString(),
 			role: user.role,
@@ -198,6 +198,19 @@ export class AuthService {
 		await this.storeRefreshToken(user._id.toString(), refresh_token);
 
 		return {
+			user: {
+				_id: user._id,
+				email: user.email,
+				fullName: user.fullName,
+				avatarUrl: user.avatarUrl,	
+				role: user.role,
+				gender: user.gender || null,
+				phone_number: user.phone_number,
+				date_of_birth: user.date_of_birth,
+				address: user.address || null,
+				profile: user.profile || {},
+				status: user.status,
+			},
 			access_token: this.generateAccessToken({
 				userId: user._id.toString(),
 				role: user.role,
@@ -207,8 +220,7 @@ export class AuthService {
 	}
 
 	async signUp(signUpDto: SignUpDto) {
-		const { email, password, fullName, gender, phone_number, date_of_birth, role } = signUpDto;
-		console.log('signUpDto',signUpDto)
+		const { email, password, fullName, gender, phone_number, date_of_birth, role, avatarUrl } = signUpDto;
 		const existingUser = await this.userRepository.findOneByCondition({ email });
 		if (existingUser) {
 			throw new BadRequestException({
@@ -226,7 +238,8 @@ export class AuthService {
 			gender,
 			phone_number,
 			date_of_birth,
-			role, // chắc chắn set user active luôn
+			role,
+			avatarUrl: avatarUrl || 'https://res.cloudinary.com/dvcpy4kmm/image/upload/v1748274375/xtr9ktmr1loktzzl7m7f.svg',
 		});
 
 		// Tạo token giống như trong signIn

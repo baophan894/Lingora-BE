@@ -4,7 +4,11 @@ import { RolesGuard } from './../auth/guards/roles.guard';
 // src/user/user.controller.ts
 import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Inject, NotFoundException, BadRequestException, Query } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth } from '@nestjs/swagger';
+
+import { Req, UseInterceptors, UploadedFile, UploadedFiles } from '@nestjs/common';
+import { ApiTags, ApiConsumes, ApiBody } from '@nestjs/swagger';
+
 import { UserService } from './users.service';
 import { User } from 'next-auth';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -16,10 +20,18 @@ import { UserRepository } from '@repositories/user.repository';
 import { v4 as uuidv4 } from 'uuid';
 import { ForgotPasswordDto } from './dto/forgot-password.dto.ts';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+
+import { ChangePasswordDTO } from './dto/change-password';
+
+import { AuthGuard } from '@nestjs/passport'; import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
+import { multerConfig } from '../../configs/multer.config';
+
+
 @ApiTags('Users')
 @Controller('users')
 @ApiBearerAuth('token')
 export class UserController {
+
   constructor(
     private readonly userService: UserService,
     @Inject('UsersRepositoryInterface')
@@ -90,13 +102,33 @@ export class UserController {
     return this.userService.create(user);
   }
 
-  @Put(':id')
-  async update(@Param('id') id: string, @Body() user: UpdateUserDto): Promise<User> {
-    return this.userService.update(id, user);
+  @Put('change-password')
+  @UseGuards(AuthGuard('jwt'))
+  async changePassword(
+    @Body() changePasswordDto: ChangePasswordDTO,
+    @Req() req: any, // Use standard Request type
+  ): Promise<void> {
+    return this.userService.changePassword(req.user.userId, changePasswordDto);
   }
+
 
   @Delete(':id')
   async delete(@Param('id') id: string): Promise<User> {
     return this.userService.delete(id);
   }
+
+  @Put(':id')
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'avatar', maxCount: 1 }
+  ]))
+  @ApiConsumes('multipart/form-data')
+  async update(
+    @Param('id') id: string,
+    @Body() user: UpdateUserDto,
+    @UploadedFiles() files: { avatar?: Express.Multer.File[] }
+  ): Promise<User> {
+    const avatarFile = files?.avatar?.[0];
+    return this.userService.update(id, user, avatarFile);
+  }
+
 }
