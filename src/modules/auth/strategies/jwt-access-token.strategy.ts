@@ -23,7 +23,10 @@ export class JwtAccessTokenStrategy extends PassportStrategy(Strategy, 'jwt') {
 	async validate(payload: TokenPayload) {
 		console.log('JwtAccessTokenStrategy :', payload);
 		const { userId, role } = payload;
+		console.log('JWT payload:', payload);
 		const user = await this.userService.findById(userId);
+		console.log('user', user);
+		
 		if (!user) {
 			throw new UnauthorizedException(
 				'Quyền truy cập bị từ chối: Không tìm thấy học sinh.',

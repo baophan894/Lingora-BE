@@ -10,7 +10,9 @@ const api_documentation_credentials = {
 export function configSwagger(app: INestApplication) {
 	const config = new DocumentBuilder()
 		.setTitle('Lingora project')
+
 		.setDescription('## The Lingora API description')
+
 		.setVersion('1.0')
 		.addSecurity('token', { type: 'http', scheme: 'bearer' })
 		.build();
