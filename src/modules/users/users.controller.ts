@@ -1,5 +1,5 @@
 // src/user/user.controller.ts
-import { Controller, Get, Post, Body, Param, Put, Delete, Req, UseInterceptors, UploadedFile} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, Req, UseInterceptors, UploadedFile, UploadedFiles } from '@nestjs/common';
 import { ApiTags, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { UserService } from './users.service';
 import { User } from 'next-auth';
@@ -7,13 +7,13 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDTO } from './dto/change-password';
 import { UseGuards } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';import { FileInterceptor } from '@nestjs/platform-express';
+import { AuthGuard } from '@nestjs/passport'; import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from '../../configs/multer.config';
 
 @ApiTags('Users')
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {  }
+  constructor(private readonly userService: UserService) { }
 
   @Get()
   async getAll(): Promise<User[]> {
@@ -40,22 +40,23 @@ export class UserController {
   }
 
 
-  @Put(':id')
-  async update(@Param('id') id: string, @Body() user: UpdateUserDto): Promise<User> {
-    return this.userService.update(id, user);
-  }
-
   @Delete(':id')
   async delete(@Param('id') id: string): Promise<User> {
     return this.userService.delete(id);
   }
 
-  @Post(':id/avatar')
-  @UseInterceptors(FileInterceptor('file'))
+  @Put(':id')
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'avatar', maxCount: 1 }
+  ]))
   @ApiConsumes('multipart/form-data')
-   async updateAvatar(@Param('id') id: string, @UploadedFile() file: Express.Multer.File): Promise<User> {
-    return this.userService.updateAvatar(id, file);
+  async update(
+    @Param('id') id: string,
+    @Body() user: UpdateUserDto,
+    @UploadedFiles() files: { avatar?: Express.Multer.File[] }
+  ): Promise<User> {
+    const avatarFile = files?.avatar?.[0];
+    return this.userService.update(id, user, avatarFile);
   }
-
 
 }

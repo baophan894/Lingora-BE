@@ -48,6 +48,8 @@ import { GeneratorService } from '../../services/generator.service';
 		JwtStrategy,
 		WsJwtGuard,
 		JwtAccessTokenGuard,
+		AwsS3Service,
+		GeneratorService,
 		{ provide: 'ChatRepositoryInterface', useClass: ChatRepository },
 		{ provide: 'UsersRepositoryInterface', useClass: UserRepository },
 		{ provide: 'ChatMessageRepositoryInterface', useClass: ChatMessageRepository },

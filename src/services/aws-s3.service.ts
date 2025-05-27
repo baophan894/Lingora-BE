@@ -54,7 +54,8 @@ export class AwsS3Service implements OnModuleInit {
 	}
 	//cho gen ra avatar url tra ve
 	private getS3Url(key: string): string {
-		return `https://${this.bucketName}.s3.${this.configService.get<string>('AWS_S3_BUCKET_REGION')}.amazonaws.com/${key}`;
+		const timestamp = Date.now();
+		return `https://${this.bucketName}.s3.${this.configService.get<string>('AWS_S3_BUCKET_REGION')}.amazonaws.com/${key}?t=${timestamp}`;
 	}
 
 	async uploadImage(file: IFile): Promise<string> {

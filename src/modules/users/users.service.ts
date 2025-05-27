@@ -75,8 +75,40 @@ export class UserService {
     return this.userRepository.create(data);
   }
 
-  async update(id: string, data: Partial<User>): Promise<User> {
-    const updated = await this.userRepository.update(id, data);
+  async update(id: string, data: Partial<User>, avatarFile?: Express.Multer.File): Promise<User> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    let updateData = { ...data };
+
+    // Handle avatar file upload if provided
+    if (avatarFile) {
+      // Delete old avatar if exists
+      if (user.avatarUrl) {
+        const oldKey = user.avatarUrl.split('.com/')[1];
+        try {
+          await this.awsS3Service.deleteObject(oldKey);
+        } catch (error) {
+          console.warn('Failed to delete old avatar:', error);
+        }
+      }
+
+      // Upload new avatar to S3
+      const avatarUrl = await this.awsS3Service.uploadACLImage({
+        buffer: avatarFile.buffer,
+        mimetype: avatarFile.mimetype,
+        originalname: avatarFile.originalname,
+        encoding: avatarFile.encoding,
+        fieldname: avatarFile.fieldname,
+        size: avatarFile.size,
+      });
+
+      updateData.avatarUrl = avatarUrl;
+    }
+
+    const updated = await this.userRepository.update(id, updateData);
     if (!updated) throw new NotFoundException('User not found');
     return updated;
   }
