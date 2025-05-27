@@ -25,7 +25,6 @@ import { PassThrough } from 'stream';
 export class AwsS3Service implements OnModuleInit {
 	private s3Client: S3Client;
 	private bucketName: string;
-	private bucketEndpoint: string;
 	private expiresIn: number;
 
 	constructor(
@@ -44,9 +43,6 @@ export class AwsS3Service implements OnModuleInit {
 
 		const region = this.configService.get<string>('AWS_S3_BUCKET_REGION');
 		this.bucketName = this.configService.get<string>('AWS_S3_BUCKET_NAME');
-		this.bucketEndpoint = this.configService.get<string>(
-			'AWS_S3_BUCKET_ENDPOINT',
-		);
 
 		this.s3Client = new S3Client({
 			region: region,
@@ -55,6 +51,10 @@ export class AwsS3Service implements OnModuleInit {
 				secretAccessKey: secretAccessKey,
 			},
 		});
+	}
+	//cho gen ra avatar url tra ve
+	private getS3Url(key: string): string {
+		return `https://${this.bucketName}.s3.${this.configService.get<string>('AWS_S3_BUCKET_REGION')}.amazonaws.com/${key}`;
 	}
 
 	async uploadImage(file: IFile): Promise<string> {
@@ -81,9 +81,9 @@ export class AwsS3Service implements OnModuleInit {
 			throw new Error(`Failed to upload image: ${error.message}`);
 		}
 
-		return `${this.bucketEndpoint}${key}`;
+		return this.getS3Url(key);
 	}
-
+	
 	async uploadImageFromBuffer(buffer: Buffer, mimetype: string): Promise<string> {
 		if (!buffer || !mimetype) {
 			throw new Error('Buffer and mimetype are required');
@@ -111,7 +111,7 @@ export class AwsS3Service implements OnModuleInit {
 			throw new Error(`Failed to upload image: ${error.message}`);
 		}
 
-		return `${this.bucketEndpoint}${key}`;
+		return this.getS3Url(key);
 	}
 
 	async uploadDocument(file: IFile): Promise<string> {
@@ -138,39 +138,51 @@ export class AwsS3Service implements OnModuleInit {
 			throw new Error(`Failed to upload document: ${error.message}`);
 		}
 
-		return `${this.bucketEndpoint}${key}`;
+		return key;
 	}
 
-
 	async deleteObject(key: string) {
-		if (this.validateRemovedImage(key)) {
+		if (!key) {
+			console.warn('Attempted to delete object with undefined or empty key');
+			return;
+		}
+
+		try {
 			await this.s3Client.send(
 				new DeleteObjectCommand({
 					Bucket: this.bucketName,
 					Key: key,
 				}),
 			);
+		} catch (error) {
+			console.error(`Failed to delete object with key ${key}:`, error);
+			throw new Error(`Failed to delete object: ${error.message}`);
 		}
 	}
 
 	async deleteObjects(keys: string[]) {
-		const promiseDelete = keys.map((item) => {
-			const oldKey = GeneratorProvider.getS3Key(item);
+		if (!keys || keys.length === 0) {
+			return;
+		}
 
-			if (oldKey && this.validateRemovedImage(oldKey)) {
-				return this.s3Client.send(
-					new DeleteObjectCommand({
-						Bucket: this.bucketName,
-						Key: oldKey,
-					}),
-				);
-			}
-		});
+		const promiseDelete = keys.map((item) => {
+			if (!item) return null;
+			const oldKey = GeneratorProvider.getS3Key(item);
+			if (!oldKey) return null;
+
+			return this.s3Client.send(
+				new DeleteObjectCommand({
+					Bucket: this.bucketName,
+					Key: oldKey,
+				}),
+			);
+		}).filter(Boolean);
 
 		await Promise.all(promiseDelete);
 	}
 
-	validateRemovedImage(key: string) {
+	validateRemovedImage(key: string): boolean {
+		if (!key) return false;
 		return !key.includes('templates/');
 	}
 
@@ -202,7 +214,7 @@ export class AwsS3Service implements OnModuleInit {
 
 		await uploader.done();
 
-		return `${this.bucketEndpoint}${fileName}`;
+		return fileName;
 	}
 
 	async getVideoDownloadLink(urlS3: string, title: string): Promise<string> {
@@ -220,6 +232,7 @@ export class AwsS3Service implements OnModuleInit {
 
 		return url;
 	}
+
 	getSignedUrl(key: string): Promise<string> {
 		const command = new GetObjectCommand({
 			Bucket: this.bucketName,
@@ -267,5 +280,33 @@ export class AwsS3Service implements OnModuleInit {
 		archive.finalize();
 
 		return passthrough;
+	}
+
+	async uploadACLImage(file: IFile): Promise<string> {
+		const extension = mime.extension(file.mimetype);
+
+		if (!extension) {
+			throw new Error(`Unsupported mimetype: ${file.mimetype}`);
+		}
+
+		const fileName = this.generatorService.fileName(<string>extension);
+		const key = `images/${fileName}`;
+
+		try {
+			await this.s3Client.send(
+				new PutObjectCommand({
+					Bucket: this.bucketName,
+					Body: file.buffer,
+					ContentType: file.mimetype,
+					Key: key,
+					ACL: 'public-read',
+				}),
+			);
+		} catch (error) {
+			console.error('Failed to upload image:', error);
+			throw new Error(`Failed to upload image: ${error.message}`);
+		}
+
+		return this.getS3Url(key);
 	}
 }

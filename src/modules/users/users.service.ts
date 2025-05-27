@@ -9,7 +9,7 @@ import { access_token_private_key, refresh_token_private_key } from 'src/constra
 import { ConfigService } from '@nestjs/config';
 import { FilterQuery } from 'mongoose';
 import { ChangePasswordDTO } from './dto/change-password';
-
+import { AwsS3Service } from '../../services/aws-s3.service'; 
 
 @Injectable()
 export class UserService {
@@ -17,9 +17,9 @@ export class UserService {
   constructor(
     @Inject('UsersRepositoryInterface')
     private readonly userRepository: UserRepository,
-
     private readonly jwt_service: JwtService,
     private config_service: ConfigService,
+    private awsS3Service: AwsS3Service, //loi o day
   ) { }
 
   generateAccessToken(payload: TokenPayload) {
@@ -122,4 +122,31 @@ export class UserService {
     await this.userRepository.update(userId, { passwordHash: hashedPassword });
   }
 
+
+  async updateAvatar(id: string, file: Express.Multer.File): Promise<User> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Delete old avatar if exists
+    if (user.avatarUrl) {
+      const oldKey = user.avatarUrl.split('.com/')[1];
+      await this.awsS3Service.deleteObject(oldKey);
+    }
+
+    // Upload new file to S3
+    const avatarUrl = await this.awsS3Service.uploadACLImage({
+      buffer: file.buffer,
+      mimetype: file.mimetype,
+      originalname: file.originalname,
+      encoding: file.encoding,
+      fieldname: file.fieldname,
+      size: file.size,
+      //ACL: 'public-read'
+    });
+
+    // Update user's avatar URL
+    return this.update(id, { avatarUrl });
+  }
 }

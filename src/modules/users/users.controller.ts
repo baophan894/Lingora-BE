@@ -1,18 +1,19 @@
 // src/user/user.controller.ts
-import { Controller, Get, Post, Body, Param, Put, Delete, Req } from '@nestjs/common';
-
-import { ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Param, Put, Delete, Req, UseInterceptors, UploadedFile} from '@nestjs/common';
+import { ApiTags, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { UserService } from './users.service';
 import { User } from 'next-auth';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDTO } from './dto/change-password';
 import { UseGuards } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { AuthGuard } from '@nestjs/passport';import { FileInterceptor } from '@nestjs/platform-express';
+import { multerConfig } from '../../configs/multer.config';
+
 @ApiTags('Users')
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService) {  }
 
   @Get()
   async getAll(): Promise<User[]> {
@@ -47,6 +48,13 @@ export class UserController {
   @Delete(':id')
   async delete(@Param('id') id: string): Promise<User> {
     return this.userService.delete(id);
+  }
+
+  @Post(':id/avatar')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+   async updateAvatar(@Param('id') id: string, @UploadedFile() file: Express.Multer.File): Promise<User> {
+    return this.userService.updateAvatar(id, file);
   }
 
 
