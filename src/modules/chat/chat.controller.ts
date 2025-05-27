@@ -13,9 +13,6 @@ import { SendMessageDto } from './dto/send-message.dto';
 import { WsJwtGuard } from './guards/ws-jwt.guard';
 import { JwtAccessTokenGuard } from '@modules/auth/guards/jwt-access-token.guard';
 import { ApiTags } from '@nestjs/swagger';
-import { User, USER_ROLE, USER_STATUS } from '@modules/users/entities/users.entity';
-import { Types } from 'mongoose';
-import { UserRepository } from '@repositories/user.repository';
 import { UserService } from '@modules/users/users.service';
 
 @ApiTags('Chats')

@@ -1,27 +1,23 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { WsException } from '@nestjs/websockets';
-import { Socket } from 'socket.io';
-import { JwtService } from '@nestjs/jwt';
+import { ExecutionContext, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { AuthGuard } from '@nestjs/passport';
+import { Observable } from 'rxjs';
+import { IS_PUBLIC_KEY } from 'src/decorators/auth.decorator';
 
 @Injectable()
-export class WsJwtGuard implements CanActivate {
-	constructor(private jwtService: JwtService) {}
+export class WsJwtGuard extends AuthGuard('jwt') {
+  constructor(private reflector: Reflector) {
+    super();
+  }
 
-	async canActivate(context: ExecutionContext): Promise<boolean> {
-		try {
-			const client: Socket = context.switchToWs().getClient();
-			const token = client.handshake.auth.token;
-
-			if (!token) {
-				throw new WsException('Unauthorized');
-			}
-
-			const payload = await this.jwtService.verifyAsync(token);
-			client.data.user = payload;
-
-			return true;
-		} catch (err) {
-			throw new WsException('Unauthorized');
-		}
-	}
+  canActivate(
+    context: ExecutionContext,
+  ): boolean | Promise<boolean> | Observable<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) return true;
+    return super.canActivate(context);
+  }
 }

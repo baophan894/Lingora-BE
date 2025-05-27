@@ -24,4 +24,8 @@ export class ChatMessageRepository {
 	): Promise<UpdateResult> {
 		return this.chatMessageModel.updateMany(condition, update).exec();
 	}
+
+	async findAll(condition: FilterQuery<ChatMessage>): Promise<ChatMessage[]> {
+		return this.chatMessageModel.find(condition).exec();
+	}
 }

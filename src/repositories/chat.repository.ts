@@ -31,6 +31,9 @@ export class ChatRepository {
 		return this.chatModel.findOne(condition).exec();
 	}
 
+	async findOneAndPopulate(filter: FilterQuery<Chat>, populate: string[]) {
+		return this.chatModel.findOne(filter).populate(populate).exec();
+	  }
 	async findById(id: string): Promise<Chat | null> {
 		return this.chatModel.findById(id).exec();
 	}

@@ -5,7 +5,7 @@ import { CreateChatDto } from './dto/create-chat.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { ChatRepository } from '@repositories/chat.repository';
 import { UserRepository } from '@repositories/user.repository';
-import { Types } from 'mongoose';
+import { ObjectId, Types } from 'mongoose';
 import { ChatMessageRepository } from '@repositories/chatMessage.repository';
 import { User } from '@modules/users/entities/users.entity';
 
@@ -77,20 +77,11 @@ export class ChatService {
 		currentUser: any,
 	): Promise<ChatMessage[]> {
 		const chatIdObjectId = new Types.ObjectId(chatId);
-		const currentUserObjectId = new Types.ObjectId(currentUser.userId);
-		const chat = await this.chatRepository.findOne({
-			_id: chatIdObjectId,
-			$or: [
-				{ participant1: currentUserObjectId },
-				{ participant2: currentUserObjectId },
-			],
+		const messages = await this.chatMessageRepository.findAll({
+			chatId: chatIdObjectId.toString(),
 		});
-
-		if (!chat) {
-			throw new NotFoundException('Chat not found');
-		}
-
-		return chat.messages;
+		console.log('messages', messages);
+		return messages;
 	}
 
 	async sendMessage(
@@ -99,37 +90,39 @@ export class ChatService {
 		sendMessageDto: SendMessageDto,
 	): Promise<ChatMessage> {
 		const chat = await this.chatRepository.findOne({
-			_id: chatId,
-			$or: [
-				{ participant1: currentUser.userId },
-				{ participant2: currentUser.userId },
-			],
+			_id: new Types.ObjectId(chatId),
 		});
+
+		console.log('chat', chat);
 
 		if (!chat) {
 			throw new NotFoundException('Chat not found');
 		}
+		console.log('currentUser', currentUser);
 
 		const receiverId =
-			chat.participant1.toString() === currentUser.userId.toString()
+			chat.participant1.toString() === currentUser._id.toString()
 				? chat.participant2
 				: chat.participant1;
 
 		const message = await this.chatMessageRepository.create({
-			senderId: currentUser.userId.toString(),
+			senderId: currentUser._id.toString(),
 			receiverId: receiverId.toString(),
 			content: sendMessageDto.content,
-			chatId: chatId,
+			chatId: chatId.toString(),
 		});
 
-		chat.messages.push(message);
+		chat.messages.push(message._id as ObjectId);
 
 		await this.chatRepository.update(chatId, {
 			messages: chat.messages,
 			lastMessageAt: new Date(),
 		});
 
-		return message;
+		return {
+			...((message as any).toObject?.() ?? message),
+			chat: chatId,
+		};
 	}
 
 	async markMessagesAsRead(chatId: string, currentUser: any): Promise<void> {

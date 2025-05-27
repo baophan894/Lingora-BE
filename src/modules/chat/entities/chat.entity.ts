@@ -1,8 +1,7 @@
 import { Schema, Prop } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, ObjectId, Types } from 'mongoose';
 import { SchemaFactory } from '@nestjs/mongoose';
 import { BaseEntity } from '@modules/shared/base/base.entity';
-import { ChatMessage } from './chat-message.entity';
 import { NextFunction } from 'express';
 
 export type ChatDocument = HydratedDocument<Chat>;
@@ -15,7 +14,7 @@ export class Chat extends BaseEntity {
 	constructor(data?: {
 		participant1?: Types.ObjectId | string;
 		participant2?: Types.ObjectId | string;
-		messages?: ChatMessage[];
+		messages?: ObjectId[];
 		lastMessageAt?: Date;
 	}) {
 		super();
@@ -32,10 +31,10 @@ export class Chat extends BaseEntity {
 	participant2: Types.ObjectId | string;
 
 	@Prop({
-		type: [{ type: Types.ObjectId, ref: 'Message' }],
+		type: [{ type: Types.ObjectId, ref: 'ChatMessage' }],
 		default: [],
 	})
-	messages: ChatMessage[];
+	messages: ObjectId[];
 
 	@Prop({ type: Date, default: Date.now })
 	lastMessageAt: Date;
