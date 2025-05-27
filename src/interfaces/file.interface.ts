@@ -5,4 +5,5 @@ export interface IFile {
   mimetype: string;
   originalname: string;
   size: number;
+  ACL?: string;
 }

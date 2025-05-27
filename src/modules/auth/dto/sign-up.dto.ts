@@ -44,6 +44,8 @@ export class SignUpDto {
 	@IsEnum(USER_ROLE, { message: 'Vai trò không hợp lệ' })
 	role?: USER_ROLE;
 
+	@IsOptional()
+	avatarUrl?: string;
 }
 
 // Format phone number to +84 format

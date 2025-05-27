@@ -73,7 +73,7 @@ export class AuthService {
 					fullName: fullName,
 					role: USER_ROLE.STUDENT, 
 					isActive: true,
-					avatarUrl: sign_up_dto.avatar,
+					avatarUrl: sign_up_dto.avatar || 'https://res.cloudinary.com/dvcpy4kmm/image/upload/v1748274375/xtr9ktmr1loktzzl7m7f.svg',
 					gender: sign_up_dto.gender,
 				});
 			}
@@ -216,7 +216,7 @@ export class AuthService {
 	}
 
 	async signUp(signUpDto: SignUpDto) {
-		const { email, password, fullName, gender, phone_number, date_of_birth, role } = signUpDto;
+		const { email, password, fullName, gender, phone_number, date_of_birth, role, avatarUrl } = signUpDto;
 
 		const existingUser = await this.userRepository.findOneByCondition({ email });
 		if (existingUser) {
@@ -235,7 +235,8 @@ export class AuthService {
 			gender,
 			phone_number,
 			date_of_birth,
-			role, // chắc chắn set user active luôn
+			role,
+			avatarUrl: avatarUrl || 'https://res.cloudinary.com/dvcpy4kmm/image/upload/v1748274375/xtr9ktmr1loktzzl7m7f.svg',
 		});
 
 		// Tạo token giống như trong signIn
