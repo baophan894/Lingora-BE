@@ -9,6 +9,7 @@ import {
 	IsStrongPassword,
 	Matches,
 	MaxLength,
+	IsString
 } from 'class-validator';
 
 

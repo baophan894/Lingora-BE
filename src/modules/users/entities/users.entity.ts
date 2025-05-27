@@ -31,6 +31,7 @@ export enum USER_STATUS {
 })
 export class User extends BaseEntity {
 
+
   constructor(user: {
     email: string;
     passwordHash: string;
