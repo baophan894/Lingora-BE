@@ -48,7 +48,7 @@ export class UserController {
 
   @Get('verify-email')
   async verifyEmail(@Query('token') token: string) {
-    const user = await this.userRepository.findOne({ where: { emailVerificationToken: token } });
+    const user = await this.userRepository.findOne({ emailVerificationToken: token });
     if (!user) throw new BadRequestException('Token không hợp lệ');
     user.isVerified = true;
     user.emailVerificationToken = null;
