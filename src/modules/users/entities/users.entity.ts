@@ -31,6 +31,7 @@ export enum USER_STATUS {
 })
 export class User extends BaseEntity {
 
+
   constructor(user: {
     email: string;
     passwordHash: string;
@@ -124,13 +125,25 @@ export class User extends BaseEntity {
   @Prop()
   @Exclude()
   current_refresh_token?: string;
+
+  @Prop({ nullable: true })
+  emailVerificationToken: string;
+
+  @Prop({ nullable: true })
+  resetPasswordToken: string;
+
+  @Prop({ nullable: true })
+  resetPasswordExpires: Date;
+
+  @Prop({ default: false })
+  isVerified: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
 
 export const UserSchemaFactory = () => {
   const schema = UserSchema;
-  UserSchema.index({ username: 1 }, { unique: true }); // đang lỗi vì username không tồn tại
+  UserSchema.index({ username: 1 }, { unique: true });
   UserSchema.set('autoIndex', false);
   schema.pre('findOneAndDelete', async function (next: NextFunction) {
     const user = await this.model.findOne(this.getFilter());

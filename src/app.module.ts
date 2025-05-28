@@ -1,4 +1,3 @@
-
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -10,7 +9,8 @@ import { APP_FILTER } from '@nestjs/core';
 import { GlobalExceptionFilter } from './exception-filters/global-exception.filter';
 import * as mongoose from 'mongoose';
 import { UserModule } from '@modules/users/users.module';
-import { Auth } from 'firebase-admin/lib/auth/auth';
+import { ChatModule } from './modules/chat/chat.module';
+import { ChatService } from '@modules/chat/chat.service';import { Auth } from 'firebase-admin/lib/auth/auth';
 import { AuthModule } from '@modules/auth/auth.module';
 
 
@@ -53,7 +53,7 @@ import { AuthModule } from '@modules/auth/auth.module';
 		}),
 		AuthModule,
 		UserModule,
-	
+		ChatModule,
 	],
 	controllers: [AppController],
 	providers: [
@@ -62,6 +62,7 @@ import { AuthModule } from '@modules/auth/auth.module';
 			provide: APP_FILTER,
 			useClass: GlobalExceptionFilter,
 		},
+		ChatService,
 	],
 })
 export class AppModule {}

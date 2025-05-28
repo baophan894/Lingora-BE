@@ -23,6 +23,8 @@ import { SignUpDto, SignUpGoogleDto } from './dto/sign-up.dto';
 import { UserRepository } from '@repositories/user.repository';
 import { SignInTokenDto } from './dto/sign-in-token.dto';
 import { USER_ROLE } from '@modules/users/entities/users.entity';
+import { EmailService } from '@modules/email/email.service';
+import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class AuthService {
 	private SALT_ROUND = 11;
@@ -32,6 +34,8 @@ export class AuthService {
 		private readonly user_service: UserService,
 		private readonly userRepository: UserRepository,
 		private readonly jwt_service: JwtService,
+		private readonly emailService: EmailService
+
 
 	) { }
 	generateAccessToken(payload: TokenPayload) {
@@ -71,9 +75,9 @@ export class AuthService {
 				user = await this.userRepository.create({
 					email: sign_up_dto.email,
 					fullName: fullName,
-					role: USER_ROLE.STUDENT, 
+					role: USER_ROLE.STUDENT,
 					isActive: true,
-					avatarUrl: sign_up_dto.avatar,
+					avatarUrl: sign_up_dto.avatar || 'https://res.cloudinary.com/dvcpy4kmm/image/upload/v1748274375/xtr9ktmr1loktzzl7m7f.svg',
 					gender: sign_up_dto.gender,
 				});
 			}
@@ -170,6 +174,7 @@ export class AuthService {
 			});
 		}
 
+		console.log('user.passwordHash', user.passwordHash);
 		const isPasswordMatched = await bcrypt.compare(password, user.passwordHash);
 		if (!isPasswordMatched) {
 			throw new BadRequestException({
@@ -215,8 +220,7 @@ export class AuthService {
 	}
 
 	async signUp(signUpDto: SignUpDto) {
-		const { email, password, fullName, gender, phone_number, date_of_birth, role } = signUpDto;
-
+		const { email, password, fullName, gender, phone_number, date_of_birth, role, avatarUrl } = signUpDto;
 		const existingUser = await this.userRepository.findOneByCondition({ email });
 		if (existingUser) {
 			throw new BadRequestException({
@@ -234,7 +238,8 @@ export class AuthService {
 			gender,
 			phone_number,
 			date_of_birth,
-			role, // chắc chắn set user active luôn
+			role,
+			avatarUrl: avatarUrl || 'https://res.cloudinary.com/dvcpy4kmm/image/upload/v1748274375/xtr9ktmr1loktzzl7m7f.svg',
 		});
 
 		// Tạo token giống như trong signIn
@@ -244,6 +249,12 @@ export class AuthService {
 		});
 
 		await this.storeRefreshToken(createdUser._id.toString(), refresh_token);
+
+		const token = uuidv4();
+		console.log('token',token)
+		createdUser.emailVerificationToken = token;
+		await this.userRepository.update(createdUser.id, { emailVerificationToken: token });
+		await this.emailService.sendResetPassword(createdUser.email, token);
 
 		return {
 			message: 'User registered and logged in successfully',

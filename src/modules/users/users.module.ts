@@ -7,6 +7,9 @@ import { UserService } from './users.service';
 import { UserRepository } from '@repositories/user.repository';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { EmailService } from '@modules/email/email.service';
+import { AwsS3Service } from "../../services/aws-s3.service";
+import { GeneratorService } from '../../services/generator.service';
 
 @Module({
 	imports: [
@@ -18,6 +21,7 @@ import { ConfigService } from '@nestjs/config';
 				imports: [MongooseModule.forFeature([])],
 			},
 		]),
+		
 	
 	],
 	controllers: [UserController],
@@ -26,9 +30,13 @@ import { ConfigService } from '@nestjs/config';
 		JwtService,
 		ConfigService,
 		UserRepository,
+		EmailService,
+		AwsS3Service,
+		GeneratorService,
+
 		{ provide: 'UsersRepositoryInterface', useClass: UserRepository },
 	
 	],
-	exports: [UserService, 'UsersRepositoryInterface',UserRepository, MongooseModule],
+	exports: [UserService, 'UsersRepositoryInterface',UserRepository, MongooseModule, AwsS3Service],
 })
 export class UserModule {}
