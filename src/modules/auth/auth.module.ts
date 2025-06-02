@@ -24,7 +24,7 @@ import { CustomMailerModule } from '@modules/email/mailer.module';
 @Module({
 	imports: [
 		UserModule,
-
+		HttpModule,
 		PassportModule,
 		JwtModule.register({}),
 		HttpModule,
