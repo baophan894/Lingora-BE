@@ -300,10 +300,8 @@ export class AuthService {
 		const token = uuidv4();
 		console.log('token', token);
 		createdUser.emailVerificationToken = token;
-		await this.userRepository.update(createdUser.id, {
-			emailVerificationToken: token,
-		});
-
+		await this.userRepository.update(createdUser.id, { emailVerificationToken: token });
+		console.log('createUser',createdUser)
 		await this.emailService.sendEmailVerification(createdUser.email, token);
 
 		return {

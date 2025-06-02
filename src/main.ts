@@ -14,10 +14,10 @@ async function bootstrap() {
 	const logger = new Logger(bootstrap.name);
 	const app = await NestFactory.create<NestExpressApplication>(AppModule);
 	app.enableCors({
-		origin: '*', // Adjust this to your frontend URL
-		credentials: true, // Allow credentials if needed
+		origin: '*',
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-		allowedHeaders: '*', 
+		allowedHeaders: '*',
+		credentials: true,
 	});
 	configSwagger(app);
 	const config_service = app.get(ConfigService);
