@@ -11,3 +11,4 @@ export const database_config = () => ({
 		uri: process.env.DATABASE_URI,
 	},
 });
+
