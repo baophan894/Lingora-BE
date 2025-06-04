@@ -25,19 +25,20 @@ import { SignInTokenDto } from './dto/sign-in-token.dto';
 import { USER_ROLE } from '@modules/users/entities/users.entity';
 import { EmailService } from '@modules/email/email.service';
 import { v4 as uuidv4 } from 'uuid';
+import { HttpService } from '@nestjs/axios';
+
 @Injectable()
 export class AuthService {
 	private SALT_ROUND = 11;
 	constructor(
 		private config_service: ConfigService,
 
+		private readonly http_service: HttpService,
 		private readonly user_service: UserService,
 		private readonly userRepository: UserRepository,
 		private readonly jwt_service: JwtService,
-		private readonly emailService: EmailService
-
-
-	) { }
+		private readonly emailService: EmailService,
+	) {}
 	generateAccessToken(payload: TokenPayload) {
 		return this.jwt_service.sign(payload, {
 			algorithm: 'RS256',
@@ -69,7 +70,9 @@ export class AuthService {
 
 	async authInWithGoogle(sign_up_dto: SignUpGoogleDto) {
 		try {
-			let user = await this.userRepository.findOneByCondition({ email: sign_up_dto.email });
+			let user = await this.userRepository.findOneByCondition({
+				email: sign_up_dto.email,
+			});
 			const fullName = `${sign_up_dto.first_name} ${sign_up_dto.last_name}`;
 			if (!user) {
 				user = await this.userRepository.create({
@@ -77,10 +80,14 @@ export class AuthService {
 					fullName: fullName,
 					role: USER_ROLE.STUDENT,
 					isActive: true,
-					avatarUrl: sign_up_dto.avatar || 'https://res.cloudinary.com/dvcpy4kmm/image/upload/v1748274375/xtr9ktmr1loktzzl7m7f.svg',
+					avatarUrl:
+						sign_up_dto.avatar ||
+						'https://res.cloudinary.com/dvcpy4kmm/image/upload/v1748274375/xtr9ktmr1loktzzl7m7f.svg',
 					gender: sign_up_dto.gender,
 				});
 			}
+
+			console.log('User từ back end', user);
 
 			if (!user.isActive) {
 				throw new HttpException(
@@ -100,37 +107,57 @@ export class AuthService {
 		}
 	}
 
-
 	async authenticateWithGoogle(sign_in_token: SignInTokenDto) {
 		try {
 			const { token, avatar } = sign_in_token;
-			const decodedToken = this.jwt_service.decode(token) as { email: string };
 
-			if (!decodedToken?.email) {
+			const userInfo = await this.http_service.axiosRef.get(
+				'https://www.googleapis.com/oauth2/v3/userinfo',
+				{
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				},
+			);
+
+			const { email, name, picture } = userInfo.data;
+
+			console.log('User info from Google:', userInfo.data);
+
+			if (!email) {
 				throw new HttpException(
 					{ message: 'Token không hợp lệ', error: 'Bad Request' },
 					HttpStatus.BAD_REQUEST,
 				);
 			}
 
-			const email = decodedToken.email;
+			let user = await this.userRepository.findOneByCondition({ email });
 
-			const user = await this.userRepository.findOneByCondition({ email });
-
+			// Tạo user mới nếu chưa tồn tại
 			if (!user) {
-				throw new HttpException(
-					{ message: 'Không tìm thấy người dùng', error: 'Unauthorized' },
-					HttpStatus.UNAUTHORIZED,
-				);
+				const defaultPassword = '123456';
+				const passwordHash = await bcrypt.hash(defaultPassword, 10); // 10 là salt rounds
+				user = await this.userRepository.create({
+					email,
+					googleId: userInfo.data.sub,
+					fullName:  userInfo.data.given_name,
+					role: USER_ROLE.STUDENT,
+					isActive: true,
+					passwordHash,
+					isVerified: userInfo.data.email_verified,
+					
+					avatarUrl: picture || avatar,
+				});
 			}
 
 			if (!user.isActive) {
 				throw new HttpException(
-					{ message: 'Tài khoản của bạn đã bị khóa', error: 'Unauthorized' },
+					{ message: 'Tài khoản đã bị khóa', error: 'Unauthorized' },
 					HttpStatus.UNAUTHORIZED,
 				);
 			}
 
+			// Cập nhật avatar nếu có thay đổi
 			if (avatar && user.avatarUrl !== avatar) {
 				await this.user_service.update(user.id, { avatarUrl: avatar });
 			}
@@ -146,16 +173,16 @@ export class AuthService {
 			});
 
 			return {
-				accessToken,
-				refreshToken,
-				fullName: user.fullName,
-				role: user.role,
+				access_token: accessToken,
+				refresh_token: refreshToken,
+				user:user
 			};
 		} catch (error) {
+			console.error('Google auth error:', error);
 			throw new BadRequestException({
 				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 				error: error.message,
-				message: 'Có lỗi xảy ra, vui lòng thử lại sau',
+				message: 'Đăng nhập Google thất bại',
 			});
 		}
 	}
@@ -174,6 +201,13 @@ export class AuthService {
 			});
 		}
 
+		if(user.isVerified === false) {
+			throw new BadRequestException({
+				message: 'User is not verified',
+				details: 'Please verify your email before signing in',
+			});
+		}
+
 		console.log('user.passwordHash', user.passwordHash);
 		const isPasswordMatched = await bcrypt.compare(password, user.passwordHash);
 		if (!isPasswordMatched) {
@@ -189,7 +223,7 @@ export class AuthService {
 				details: 'Account is locked or inactive',
 			});
 		}
-		
+
 		const refresh_token = this.generateRefreshToken({
 			userId: user._id.toString(),
 			role: user.role,
@@ -202,7 +236,7 @@ export class AuthService {
 				_id: user._id,
 				email: user.email,
 				fullName: user.fullName,
-				avatarUrl: user.avatarUrl,	
+				avatarUrl: user.avatarUrl,
 				role: user.role,
 				gender: user.gender || null,
 				phone_number: user.phone_number,
@@ -220,8 +254,19 @@ export class AuthService {
 	}
 
 	async signUp(signUpDto: SignUpDto) {
-		const { email, password, fullName, gender, phone_number, date_of_birth, role, avatarUrl } = signUpDto;
-		const existingUser = await this.userRepository.findOneByCondition({ email });
+		const {
+			email,
+			password,
+			fullName,
+			gender,
+			phone_number,
+			date_of_birth,
+			role,
+			avatarUrl,
+		} = signUpDto;
+		const existingUser = await this.userRepository.findOneByCondition({
+			email,
+		});
 		if (existingUser) {
 			throw new BadRequestException({
 				message: 'Email already exists',
@@ -239,7 +284,9 @@ export class AuthService {
 			phone_number,
 			date_of_birth,
 			role,
-			avatarUrl: avatarUrl || 'https://res.cloudinary.com/dvcpy4kmm/image/upload/v1748274375/xtr9ktmr1loktzzl7m7f.svg',
+			avatarUrl:
+				avatarUrl ||
+				'https://res.cloudinary.com/dvcpy4kmm/image/upload/v1748274375/xtr9ktmr1loktzzl7m7f.svg',
 		});
 
 		// Tạo token giống như trong signIn
@@ -251,7 +298,7 @@ export class AuthService {
 		await this.storeRefreshToken(createdUser._id.toString(), refresh_token);
 
 		const token = uuidv4();
-		console.log('token',token)
+		console.log('token', token);
 		createdUser.emailVerificationToken = token;
 		await this.userRepository.update(createdUser.id, { emailVerificationToken: token });
 		console.log('createUser',createdUser)
@@ -299,5 +346,4 @@ export class AuthService {
 			refresh_token,
 		};
 	}
-
 }

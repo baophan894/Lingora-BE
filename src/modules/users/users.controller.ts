@@ -1,12 +1,30 @@
 import { MailerService } from '@nestjs-modules/mailer';
-import { EmailService } from './../email/email.service';
-import { RolesGuard } from './../auth/guards/roles.guard';
+import { EmailService } from '../email/email.service';
+import { RolesGuard } from '../auth/guards/roles.guard';
 // src/user/user.controller.ts
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Inject, NotFoundException, BadRequestException, Query } from '@nestjs/common';
+import {
+	Controller,
+	Get,
+	Post,
+	Body,
+	Param,
+	Put,
+	Delete,
+	UseGuards,
+	Inject,
+	NotFoundException,
+	BadRequestException,
+	Query,
+} from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { ApiBearerAuth } from '@nestjs/swagger';
 
-import { Req, UseInterceptors, UploadedFile, UploadedFiles } from '@nestjs/common';
+import {
+	Req,
+	UseInterceptors,
+	UploadedFile,
+	UploadedFiles,
+} from '@nestjs/common';
 import { ApiTags, ApiConsumes, ApiBody } from '@nestjs/swagger';
 
 import { UserService } from './users.service';
@@ -23,14 +41,18 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 
 import { ChangePasswordDTO } from './dto/change-password';
 
-import { AuthGuard } from '@nestjs/passport'; import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
+import { AuthGuard } from '@nestjs/passport';
+import {
+	FileFieldsInterceptor,
+	FileInterceptor,
+} from '@nestjs/platform-express';
 import { multerConfig } from '../../configs/multer.config';
-
 
 @ApiTags('Users')
 @Controller('users')
 @ApiBearerAuth('token')
 export class UserController {
+
 
   constructor(
     private readonly userService: UserService,
@@ -137,5 +159,6 @@ export class UserController {
     const avatarFile = files?.avatar?.[0];
     return this.userService.update(id, user, avatarFile);
   }
+
 
 }

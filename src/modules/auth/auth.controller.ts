@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local.guard';
 import { JwtRefreshTokenGuard } from './guards/jwt-refresh-token.guard';
@@ -14,7 +14,6 @@ import {
 	ApiTags,
 } from '@nestjs/swagger';
 import { GoogleAuthGuard } from './guards/google-oauth.guard';
-
 
 import { access_token_public_key } from 'src/constraints/jwt.constraint';
 import { SignInDto } from './dto/sign-in.dto';
@@ -38,9 +37,19 @@ export class AuthController {
 
 	@Post('google')
 	async authWithGoogle(@Body() sign_in_token: SignInTokenDto) {
-		return this.auth_service.authenticateWithGoogle(sign_in_token);
+		try {
+        const result = await this.auth_service.authenticateWithGoogle(sign_in_token);
+        return {
+            status: HttpStatus.OK,
+            message: 'Đăng nhập Google thành công',
+            data: result
+        };
+    } catch (error) {
+        throw error;
+    }
 	}
 
+	// api auth/google/callback - return access_token 
 	@UseGuards(GoogleAuthGuard)
 	@Get('google/callback')
 	@ApiResponse({

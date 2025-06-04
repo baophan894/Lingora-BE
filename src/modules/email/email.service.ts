@@ -17,6 +17,9 @@ export class EmailService {
   }
 
   async sendResetPassword(email: string, token: string) {
+
+    console.log('Sending reset password email to:', email);
+
     await this.mailerService.sendMail({
       to: email,
       subject: 'Đặt lại mật khẩu Lingora',
