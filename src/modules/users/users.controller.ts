@@ -52,107 +52,113 @@ import { multerConfig } from '../../configs/multer.config';
 @Controller('users')
 @ApiBearerAuth('token')
 export class UserController {
-	constructor(
-		private readonly userService: UserService,
-		@Inject('UsersRepositoryInterface')
-		private readonly userRepository: UserRepository,
-		private readonly emailService: EmailService,
-	) {}
 
-	//@UseGuards(JwtAccessTokenGuard)
-	//@Roles(RolesEnum.ADMIN)
-	@Get()
-	async getAll(): Promise<User[]> {
-		return this.userService.findAll();
-	}
 
-	@Get('verify-email')
-	async verifyEmail(@Query('token') token: string) {
+  constructor(
+    private readonly userService: UserService,
+    @Inject('UsersRepositoryInterface')
+    private readonly userRepository: UserRepository,
+    private readonly emailService: EmailService
+  ) { }
 
-    console.log('verifyEmail token', token);
+  @UseGuards(JwtAccessTokenGuard, RolesGuard)
+  @Roles(RolesEnum.ADMIN)
+  @Get()
+  async getAll(): Promise<User[]> {
+    return this.userService.findAll();
+  }
 
-		const user = await this.userRepository.findOne({
-			emailVerificationToken: token,
-		});
-		if (!user) throw new BadRequestException('Token không hợp lệ');
-		user.isVerified = true;
-		user.emailVerificationToken = null;
-		await this.userRepository.update(user.id, user);
-		return {
-			status: 'success',
-			message: 'Email đã được xác thực thành công',
-		};
-	}
+  @Get('verify-email')
+  async verifyEmail(@Query('token') token: string) {
+    const user = await this.userRepository.findOne({ emailVerificationToken: token });
+    if (!user) throw new BadRequestException('Token không hợp lệ');
+    user.isVerified = true;
+    user.emailVerificationToken = null;
+    await this.userRepository.update(user.id, user);
+    return { message: 'Email đã được xác thực thành công' };
+  }
 
-	@Post('forgot-password')
-	async forgotPassword(@Body() body: ForgotPasswordDto) {
-		const { email } = body;
-		const user = await this.userRepository.findOne({ email });
 
-		if (!user) throw new NotFoundException('Email không tồn tại');
+  @Post('forgot-password')
+  async forgotPassword(@Body() body: ForgotPasswordDto) {
+    const { email } = body;
+    const user = await this.userRepository.findOne({ email });
 
-		const token = uuidv4();
-		console.log('token', token);
-		user.resetPasswordToken = token;
-		user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 giờ
+    if (!user) throw new NotFoundException('Email không tồn tại');
 
-		await this.userRepository.update(user.id, user);
-		await this.emailService.sendResetPassword(user.email, token);
+    const token = uuidv4();
+    console.log('token', token)
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 giờ
 
-		return { message: 'Đã gửi mail đặt lại mật khẩu' };
-	}
+    await this.userRepository.update(user.id, user);
+    await this.emailService.sendResetPassword(user.email, token);
 
-	@Post('reset-password')
-	async resetPassword(@Body() body: ResetPasswordDto) {
-		const { token, newPassword } = body;
-		console.log('body', body);
-		const user = await this.userRepository.findOne({
-			resetPasswordToken: token,
-		});
-		if (!user || new Date() > user.resetPasswordExpires) {
-			throw new BadRequestException('Token hết hạn hoặc không hợp lệ');
-		}
-		user.passwordHash = await bcrypt.hash(newPassword, 10);
-		user.resetPasswordToken = null;
-		user.resetPasswordExpires = null;
-		await this.userRepository.update(user.id, user);
-		return { message: 'Đặt lại mật khẩu thành công' };
-	}
+    return { message: 'Đã gửi mail đặt lại mật khẩu' };
+  }
 
-	@Get(':id')
-	async getOne(@Param('id') id: string): Promise<User> {
-		return this.userService.findById(id);
-	}
+  @Post('reset-password')
+  async resetPassword(@Body() body: ResetPasswordDto) {
+    const { token, newPassword } = body;
+    console.log('body', body);
+    const user = await this.userRepository.findOne({ resetPasswordToken: token });
+    if (!user || new Date() > user.resetPasswordExpires) {
+      throw new BadRequestException('Token hết hạn hoặc không hợp lệ');
+    }
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await this.userRepository.update(user.id, user);
+    return { message: 'Đặt lại mật khẩu thành công' };
+  }
 
-	@Post('create')
-	async create(@Body() user: CreateUserDto): Promise<User> {
-		return this.userService.create(user);
-	}
+  @UseGuards(JwtAccessTokenGuard)
+  @Get('get-profile')
+  async getProfile(@Req() req: any,): Promise<User> {
+    //console.log('req.user',req.user);
+    return this.userService.findById(req.user.userId);
+  }
 
-	@Put('change-password')
-	@UseGuards(AuthGuard('jwt'))
-	async changePassword(
-		@Body() changePasswordDto: ChangePasswordDTO,
-		@Req() req: any, // Use standard Request type
-	): Promise<void> {
-		return this.userService.changePassword(req.user.userId, changePasswordDto);
-	}
+  @Get(':id')
+  async getOne(@Param('id') id: string): Promise<User> {
+    return this.userService.findById(id);
+  }
 
-	@Delete(':id')
-	async delete(@Param('id') id: string): Promise<User> {
-		return this.userService.delete(id);
-	}
 
-	@Put(':id')
-	@UseInterceptors(FileFieldsInterceptor([{ name: 'avatar', maxCount: 1 }]))
-	@ApiConsumes('multipart/form-data')
-	async update(
-		@Param('id') id: string,
-		@Body() user: UpdateUserDto,
-		@UploadedFiles() files: { avatar?: Express.Multer.File[] },
-	): Promise<User> {
-		const avatarFile = files?.avatar?.[0];
-		return this.userService.update(id, user, avatarFile);
-	}
+
+  @Post('create')
+  async create(@Body() user: CreateUserDto): Promise<User> {
+    return this.userService.create(user);
+  }
+
+  @Put('change-password')
+  @UseGuards(AuthGuard('jwt'))
+  async changePassword(
+    @Body() changePasswordDto: ChangePasswordDTO,
+    @Req() req: any,
+  ): Promise<void> {
+    return this.userService.changePassword(req.user.userId, changePasswordDto);
+  }
+
+
+  @Delete(':id')
+  async delete(@Param('id') id: string): Promise<User> {
+    return this.userService.delete(id);
+  }
+
+  @Put(':id')
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'avatar', maxCount: 1 }
+  ]))
+  @ApiConsumes('multipart/form-data')
+  async update(
+    @Param('id') id: string,
+    @Body() user: UpdateUserDto,
+    @UploadedFiles() files: { avatar?: Express.Multer.File[] }
+  ): Promise<User> {
+    const avatarFile = files?.avatar?.[0];
+    return this.userService.update(id, user, avatarFile);
+  }
+
 
 }
