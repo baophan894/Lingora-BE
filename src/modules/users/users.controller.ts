@@ -39,8 +39,8 @@ export class UserController {
     private readonly emailService: EmailService
   ) { }
 
-  //@UseGuards(JwtAccessTokenGuard)
-  //@Roles(RolesEnum.ADMIN)
+  @UseGuards(JwtAccessTokenGuard, RolesGuard)
+  @Roles(RolesEnum.ADMIN)
   @Get()
   async getAll(): Promise<User[]> {
     return this.userService.findAll();
@@ -65,10 +65,10 @@ export class UserController {
     if (!user) throw new NotFoundException('Email không tồn tại');
 
     const token = uuidv4();
-    console.log('token',token)
+    console.log('token', token)
     user.resetPasswordToken = token;
     user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 giờ
-   
+
     await this.userRepository.update(user.id, user);
     await this.emailService.sendResetPassword(user.email, token);
 
@@ -78,7 +78,7 @@ export class UserController {
   @Post('reset-password')
   async resetPassword(@Body() body: ResetPasswordDto) {
     const { token, newPassword } = body;
-    console.log('body',body);
+    console.log('body', body);
     const user = await this.userRepository.findOne({ resetPasswordToken: token });
     if (!user || new Date() > user.resetPasswordExpires) {
       throw new BadRequestException('Token hết hạn hoặc không hợp lệ');
@@ -90,12 +90,19 @@ export class UserController {
     return { message: 'Đặt lại mật khẩu thành công' };
   }
 
-
+  @UseGuards(JwtAccessTokenGuard)
+  @Get('get-profile')
+  async getProfile(@Req() req: any,): Promise<User> {
+    //console.log('req.user',req.user);
+    return this.userService.findById(req.user.userId);
+  }
 
   @Get(':id')
   async getOne(@Param('id') id: string): Promise<User> {
     return this.userService.findById(id);
   }
+
+
 
   @Post('create')
   async create(@Body() user: CreateUserDto): Promise<User> {
@@ -106,7 +113,7 @@ export class UserController {
   @UseGuards(AuthGuard('jwt'))
   async changePassword(
     @Body() changePasswordDto: ChangePasswordDTO,
-    @Req() req: any, // Use standard Request type
+    @Req() req: any,
   ): Promise<void> {
     return this.userService.changePassword(req.user.userId, changePasswordDto);
   }
