@@ -10,8 +10,9 @@ import { GlobalExceptionFilter } from './exception-filters/global-exception.filt
 import * as mongoose from 'mongoose';
 import { UserModule } from '@modules/users/users.module';
 import { ChatModule } from './modules/chat/chat.module';
-import { ChatService } from '@modules/chat/chat.service';import { Auth } from 'firebase-admin/lib/auth/auth';
+import { ChatService } from '@modules/chat/chat.service'; import { Auth } from 'firebase-admin/lib/auth/auth';
 import { AuthModule } from '@modules/auth/auth.module';
+import { CoursesModule } from '@modules/courses/courses.module';
 
 
 @Module({
@@ -54,6 +55,7 @@ import { AuthModule } from '@modules/auth/auth.module';
 		AuthModule,
 		UserModule,
 		ChatModule,
+		CoursesModule,
 	],
 	controllers: [AppController],
 	providers: [
@@ -65,4 +67,4 @@ import { AuthModule } from '@modules/auth/auth.module';
 		ChatService,
 	],
 })
-export class AppModule {}
+export class AppModule { }
