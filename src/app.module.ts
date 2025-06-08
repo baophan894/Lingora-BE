@@ -10,9 +10,10 @@ import { GlobalExceptionFilter } from './exception-filters/global-exception.filt
 import * as mongoose from 'mongoose';
 import { UserModule } from '@modules/users/users.module';
 import { ChatModule } from './modules/chat/chat.module';
-import { ChatService } from '@modules/chat/chat.service';import { Auth } from 'firebase-admin/lib/auth/auth';
+import { ChatService } from '@modules/chat/chat.service';
 import { AuthModule } from '@modules/auth/auth.module';
-
+import { PaymentsModule } from './modules/payments/payments.module';
+import { RegistrationModule } from './modules/course-registration/registration.module';
 
 @Module({
 	imports: [
@@ -27,6 +28,9 @@ import { AuthModule } from '@modules/auth/auth.module';
 				DATABASE_PASSWORD: Joi.string().min(4).required(),
 				DATABASE_HOST: Joi.string().required(),
 				DATABASE_URI: Joi.string().required(),
+				STRIPE_SECRET_KEY: Joi.string().required(),
+				STRIPE_WEBHOOK_SECRET: Joi.string().required(),
+				FRONTEND_URL: Joi.string().required(),
 			}),
 			validationOptions: {
 				abortEarly: false,
@@ -54,6 +58,8 @@ import { AuthModule } from '@modules/auth/auth.module';
 		AuthModule,
 		UserModule,
 		ChatModule,
+		PaymentsModule,
+		RegistrationModule,
 	],
 	controllers: [AppController],
 	providers: [
